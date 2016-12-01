@@ -1,0 +1,580 @@
+<script src="bower_components/stevia-elements/src/manager/stevia-manager.js"></script>
+
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+
+<script src="bower_components/cookies-js/dist/cookies.min.js"></script>
+<script src="bower_components/crypto-js/core.js"></script>
+<script src="bower_components/crypto-js/sha1.js"></script>
+<script src="bower_components/async/dist/async.min.js"></script>
+
+<link rel="import" href="bower_components/stevia-elements/src/stv-header.html">
+<link rel="import" href="bower_components/stevia-elements/src/stv-application-behavior.html">
+<link rel="import" href="bower_components/stevia-elements/src/stv-select.html">
+<link rel="import" href="bower_components/stevia-elements/src/stv-select-box.html">
+<link rel="import" href="bower_components/stevia-elements/src/stv-panel.html">
+<link rel="import" href="bower_components/stevia-elements/src/dropdown/stv-dropdown.html">
+<link rel="import" href="bower_components/stevia-elements/src/stv-feedback.html">
+<link rel="import" href="bower_components/stevia-elements/src/stv-launcher/stv-launcher.html">
+
+<link rel="import" href="bower_components/stevia-elements/src/table/stv-table.html">
+<link rel="import" href="bower_components/stevia-elements/src/form/stv-file-origin.html">
+<link rel="import" href="bower_components/stevia-elements/src/file/stv-file-browser.html">
+<link rel="import" href="bower_components/stevia-elements/src/job/stv-job-browser.html">
+<link rel="import" href="bower_components/stevia-elements/src/stv-cluster-status.html">
+
+<script src="bower_components/network-viewer/conf/config.js"></script>
+<link rel="import" href="bower_components/network-viewer/network-viewer.html">
+<link rel="import" href="bower_components/pathway-viewer/pathway-viewer.html">
+
+<dom-module id="pathway-maker-element">
+    <style is="custom-style" include="iron-flex iron-flex-reverse iron-flex-alignment iron-flex-factors iron-positioning">
+         :host {
+            display: block;
+            position: relative;
+            cursor: default;
+            font-size: 13px;
+            background-color: var(--default-primary-color);
+            height: 100%;
+            width: 100%;
+        }
+
+        stv-header {
+            position: absolute;
+            top: 0;
+        }
+
+        .content {
+            position: absolute;
+            width: 100%;
+            top: 30px;
+        }
+
+        #fileBrowserPanel {
+            position: absolute;
+            top: 0px;
+            left: 0;
+            width: 600px;
+            height: 400px;
+            min-width: 600px;
+            min-height: 400px;
+        }
+
+        @media (max-width: 1100px) {
+            .option-text {
+                display: none;
+            }
+        }
+
+        .userid {
+            color: var(--accent-color);
+            font-size: 16px;
+        }
+
+        #description {
+            color: var(--accent-color);
+            font-weight: normal;
+        }
+
+        #main {
+            box-sizing: border-box;
+            position: relative;
+            width: 100%;
+            @apply(--layout-horizontal);
+            background-color: #fff;
+            padding: 10px 8px;
+        }
+
+        #right {
+            position: relative;
+            box-sizing: border-box;
+            width: calc(100% - 300px);
+            height: 100%;
+            margin: 0 0 0 10px;
+        }
+
+        #right-bar {
+            position: relative;
+            box-sizing: border-box;
+            height: 28px;
+            width: 100%;
+            padding-bottom: 5px;
+        }
+
+        #right-bar * {
+            margin: 0 5px;
+        }
+
+        #left {
+            position: relative;
+            box-sizing: border-box;
+            width: 300px;
+            height: 100%;
+            @apply(--layout-vertical);
+        }
+
+        network-viewer {
+            box-sizing: border-box;
+            height: calc(100vh - 80px);
+            box-shadow: 0px 0px 2px 1px rgba(0, 0, 0, 0.2);
+            border: 1px solid #ccc;
+        }
+
+        #fileBrowserLeft {
+            box-sizing: border-box;
+            height: calc(100vh - 52px);
+            box-shadow: 0px 0px 2px 1px rgba(0, 0, 0, 0.2);
+            border: 1px solid #ccc;
+        }
+
+        .button {
+            color: var(--text-primary-color);
+            background-color: var(--dark-button-color);
+        }
+
+        .button:hover {
+            background-color: var(--light-button-color);
+        }
+
+        .button[data-disabled] {
+            background-color: #ddd !important;
+            color: #fff !important;
+        }
+
+        .button[data-disabled]:hover {
+            background-color: #ddd !important;
+        }
+
+        #loading {
+            z-index: 100000;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: transparent;
+            font-size: 18px;
+        }
+    </style>
+    <template>
+
+        <div id="main" class="content" menu-option="home">
+            <div id="left">
+                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" bioformats="{{bioformats}}" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}">
+                    <!-- <div class="custom-button button stv-btn stv-btn-shdw" file-ext="sif" on-click="handleSavePathway">
+                        <i class="fa fa-cloud-upload"></i>
+                    </div> -->
+                </stv-file-browser>
+            </div>
+            <div id="right">
+                <div id="right-bar" class="horizontal layout center">
+                    <div style="margin-left:15px;">{{lastFile.name}}</div>
+                    <div style="margin-left:15px;">{{lastFile.attributes.pathwayMaker.name}}</div>
+                    <div data-disabled$="{{isNull(lastFile)}}" class="custom-button button stv-btn stv-btn-shdw" on-click="handleSavePathway">
+                        <i class="fa fa-cloud-upload"></i> Save
+                    </div>
+                    <div class="custom-button button stv-btn stv-btn-shdw" on-click="handleCreatePathway">
+                        <i class="fa fa-cloud-upload"></i> Create new
+                    </div>
+                    <div>
+                        <input id="pathwayNameField" class="stv" type="text" placeholder="Pathway name" />
+                    </div>
+                    <div>
+                        <input id="pathwayIdField" class="stv" type="text" placeholder="Pathway id" />
+                    </div>
+                    <div hidden="{{!loading}}" style="margin-left:15px;">
+                        <i class="fa fa-circle-o-notch fa-spin"></i> Loading...
+                    </div>
+                </div>
+                <network-viewer id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver">
+                </network-viewer>
+            </div>
+        </div>
+        <div class="content" menu-option="home">
+            <stv-panel id="fileBrowserPanel" hidden collapsible movable closable expandible resizable on-hidden="handlePanelHidden">
+                <div class="header">
+                    <i class="fa fa-cloud"></i>&nbsp; Browse my data
+                </div>
+                <stv-file-browser id="fileBrowser" class="container flex" on-fileselect="off" bioformats="{{bioformats}}" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}">
+                </stv-file-browser>
+            </stv-panel>
+        </div>
+
+        <stv-header id="stvHeader" small selected-option="{{selectedOption}}" user-data="{{userData}}" on-login="handleLogin" on-logout="handleLogout">
+            <div class="icon">
+                <img src="images/Leaf_icon_03.svg" style="height: 27px;margin: 8px 3px 0 0;">
+            </div>
+            <div class="title horizontal layout center" style="margin-left:15px;">
+                Pathway<span style="font-weight:normal;">Maker</span>
+            </div>
+            <span id="description" class="description">
+                1.0
+            </span>
+
+            <div id="menu" class="menu horizontal layout center flex">
+                <div style="margin-left:4vw;"></div>
+                <div title="Browse my data" class="option" on-click="handleMenuPanel" login-required data-panel="fileBrowserPanel">
+                    <i class="fa fa-cloud"></i>
+                    <span class="option-text">My data</span>
+                </div>
+            </div>
+
+            <!-- <stv-launcher class="launcher" dropdown-position="left" data-src="conf/test-apps.json">
+                <i class="fa fa-th"></i>
+            </stv-launcher> -->
+
+            <!-- <stv-cluster-status id="clusterStatus" type="dark" class="cluster-status"></stv-cluster-status> -->
+
+            <!-- <stv-dropdown dark class="helpmenu">
+                <div data-button><i class="fa fa-question-circle"></i></div>
+                <ul data-menu>
+                    <a href="" target="_blank">
+                        <li>
+                            <i class="fa fa-book"></i> &nbsp; Documentation
+                        </li>
+                    </a>
+                    <li on-mousedown="handleExample">
+                        <i class="fa fa-lightbulb-o"></i> &nbsp; Run example
+                    </li>
+                    <li on-mousedown="handleFeedback">
+                        <i class="fa fa-envelope-o" aria-hidden="true"></i> &nbsp; Send an email
+                    </li>
+                    <a href="http://gitlab.bioinfo.cipf.es/stevia/stevia-elements/issues" target="_blank">
+                        <li>
+                            <i class="fa fa-exclamation-circle" aria-hidden="true"></i> &nbsp; Go to git issue
+                        </li>
+                    </a>
+                </ul>
+            </stv-dropdown> -->
+        </stv-header>
+
+        <!-- <stv-footer menu-option="home,login,signup,profile,remember">
+            Application Scaffold
+            <br> Created by
+            <span style="font-weight:bold;">Computational Genomics Department</span>
+            <br> Principe Felipe Research Center, Valencia, Spain
+            <br> 2016
+        </stv-footer> -->
+        <div id="loading" hidden$="{{!loading}}" class="horizontal layout center-justified stv-unselectable"></div>
+    </template>
+
+    <script>
+        Polymer({
+            is: "pathway-maker-element",
+            behaviors: [StvApplicationBehavior],
+            properties: {
+                bioformats: {
+                    type: Array,
+                    notify: true,
+                    value: [BIOFORMATS["NONE"]]
+                },
+                lastFile: {
+                    type: Object,
+                    value: null
+                },
+                loading: {
+                    type: Boolean,
+                    value: false
+                },
+                fileColumns: {
+                    type: Array,
+                    value: [{
+                        title: 'Pathway',
+                        name: 'pwname',
+                        width: 100,
+                        formula: function(f) {
+                            if (f.attributes != null && f.attributes.pathwayMaker != null) {
+                                return f.attributes.pathwayMaker.name
+                            } else {
+                                return '';
+                            }
+                        }
+                    }]
+                }
+            },
+            ready: function() {
+                var me = this;
+                this.checkShowMenuOnLogin();
+            },
+            handleStartOver: function(e) {
+                this.set('lastFile', null);
+            },
+            handleFileSelect: function(e) {
+                var me = this;
+                var file = e.detail.file;
+                if (!this.loading && file != null) {
+                    if (stv.utils.endsWithIgnoreCase(file.name, '.sif')) {
+                        this.set('loading', true);
+                        var prefixName = file.name.substr(0, file.name.length - 4);
+                        var nattFile = null;
+                        var eattFile = null;
+                        for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
+                            var f = this.$.fileBrowserLeft.files[i];
+                            if (f.name == prefixName + '.natt') {
+                                nattFile = f;
+                            }
+                            if (f.name == prefixName + '.eatt') {
+                                eattFile = f;
+                            }
+                        }
+                        var tasks = {
+                            sif: this._createDownloadTask(file),
+                            natt: this._createDownloadTask(nattFile),
+                            eatt: this._createDownloadTask(eattFile)
+                        };
+                        async.parallel(tasks, function(err, results) {
+                            me.$.networkViewer.startOver();
+                            var sif = results.sif;
+                            var natt = results.natt;
+                            var eatt = results.eatt;
+                            if (sif) {
+                                me.$.networkViewer.loadSif(sif);
+                                me.$.networkViewer.lastLoadedFileName = file.name;
+                                me.$.networkViewer.centerNetwork();
+                            }
+                            if (natt) {
+                                me.$.networkViewer.loadNodeAttributes(natt, natt.charAt(0) != '#');
+                                var ncolmap = {};
+                                for (var i = 0; i < me.$.networkViewer.vertexColumns.length; i++) {
+                                    var col = me.$.networkViewer.vertexColumns[i];
+                                    ncolmap[col.name] = col;
+                                }
+                                if (ncolmap['label'] != null) {
+                                    me.$.networkViewer.setVertexDefaultLabelAttribute('label');
+                                }
+                                if (ncolmap['labelSize'] != null) {
+                                    me.$.networkViewer.$.nodeRender.applyDirect('labelSize', 'labelSize');
+                                }
+                                if (ncolmap['opacity'] != null) {
+                                    me.$.networkViewer.$.nodeRender.applyDirect('opacity', 'opacity');
+                                }
+                                if (ncolmap['shape'] != null) {
+                                    me.$.networkViewer.$.nodeRender.applyDirect('shape', 'shape');
+                                }
+                                if (ncolmap['color'] != null) {
+                                    me.$.networkViewer.$.nodeRender.applyDirect('color', 'color');
+                                }
+                                if (ncolmap['strokeColor'] != null) {
+                                    me.$.networkViewer.$.nodeRender.applyDirect('strokeColor', 'strokeColor');
+                                }
+                                if (ncolmap['size'] != null) {
+                                    me.$.networkViewer.$.nodeRender.applyDirect('size', 'size');
+                                }
+                                if (ncolmap['strokeSize'] != null) {
+                                    me.$.networkViewer.$.nodeRender.applyDirect('strokeSize', 'strokeSize');
+                                }
+
+                                // me.$.networkViewer.$.nodeRender.applyDirect('exp', 'strokeColor');
+                                // me.$.networkViewer.$.nodeRender.applyDirect('diff.exp', 'color');
+                                // me.$.networkViewer.$.nodeRender.applyDirect('width', 'size');
+                            } else {
+                                me.$.networkViewer.setLayout('Force directed');
+                            }
+                            if (eatt) {
+                                me.$.networkViewer.loadEdgeAttributes(eatt, eatt.charAt(0) != '#');
+                                var ecolmap = {};
+                                for (var i = 0; i < me.$.networkViewer.edgeColumns.length; i++) {
+                                    var col = me.$.networkViewer.edgeColumns[i];
+                                    ecolmap[col.name] = col;
+                                }
+                                if (ecolmap['label'] != null) {
+                                    me.$.networkViewer.setEdgeDefaultLabelAttribute('label');
+                                }
+                                if (ecolmap['labelSize'] != null) {
+                                    me.$.networkViewer.$.edgeRender.applyDirect('labelSize', 'labelSize');
+                                }
+                                if (ecolmap['opacity'] != null) {
+                                    me.$.networkViewer.$.edgeRender.applyDirect('opacity', 'opacity');
+                                }
+                                if (ecolmap['shaft'] != null) {
+                                    me.$.networkViewer.$.edgeRender.applyDirect('shaft', 'shaft');
+                                }
+                                if (ecolmap['shape'] != null) {
+                                    me.$.networkViewer.$.edgeRender.applyDirect('shape', 'shape');
+                                }
+                                if (ecolmap['bidirectional'] != null) {
+                                    me.$.networkViewer.$.edgeRender.applyDirect('bidirectional', 'bidirectional');
+                                }
+                                if (ecolmap['color'] != null) {
+                                    me.$.networkViewer.$.edgeRender.applyDirect('color', 'color');
+                                }
+                                if (ecolmap['size'] != null) {
+                                    me.$.networkViewer.$.edgeRender.applyDirect('size', 'size');
+                                }
+                                // me.$.networkViewer.$.edgeRender.applyDirect('head', 'shape');
+                            }
+                            me.set('loading', false);
+
+                            me.set('lastFile', file);
+                        });
+                    }
+                }
+            },
+            handleSavePathway: function(e) {
+                var me = this;
+                var file = this.lastFile;
+                if (!this.loading && stv.utils.endsWithIgnoreCase(file.name, '.sif')) {
+                    this.set('loading', true);
+                    var nattFile = null;
+                    var eattFile = null;
+                    var prefixName = file.name.substr(0, file.name.length - 4);
+                    for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
+                        var f = this.$.fileBrowserLeft.files[i];
+                        if (f.name == prefixName + '.natt') {
+                            nattFile = f;
+                        }
+                        if (f.name == prefixName + '.eatt') {
+                            eattFile = f;
+                        }
+                    }
+                    var tasks = {};
+                    if (file != null) {
+                        tasks['sif'] = this._createSaveTask(file, this.$.networkViewer.exportGraph());
+                    }
+                    if (nattFile != null) {
+                        tasks['natt'] = this._createSaveTask(nattFile, this.$.networkViewer.exportVertexAttributes());
+                    }
+                    if (eattFile != null) {
+                        tasks['eatt'] = this._createSaveTask(eattFile, this.$.networkViewer.exportEdgeAttributes());
+                    }
+                    async.parallel(tasks, function(err, results) {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            console.log(results);
+                            console.log('Save done');
+                        }
+                        me.set('loading', false);
+                    });
+                }
+            },
+            handleCreatePathway: function() {
+                var me = this;
+                if (!this.loading && this.$.pathwayNameField.value != "" && this.$.pathwayIdField.value != null) {
+                    this.set('loading', true);
+
+                    async.waterfall([
+                        function(cb) {
+                            var content = me.$.networkViewer.exportGraph();
+                            var blob = new Blob([content], {
+                                type: "text/plain"
+                            });
+                            var config = {
+                                parentId: me.$.fileBrowserLeft.folder._id,
+                                file: blob,
+                                name: me.$.pathwayIdField.value + '.sif',
+                                bioFormat: '',
+                                callbackProgress: function(chunk, total, response) {
+                                    // console.log(Math.round((chunk.id / total) * 100));
+                                    if (chunk.last) {
+                                        var uploadedFile = response.file;
+                                        cb(null, uploadedFile);
+                                    }
+                                },
+                                callbackExists: function(file) {
+                                    new StvDialog().alert('File already exists with that name. Please select a different name.');
+                                    cb(null, null);
+                                },
+                                error: function(msg) {
+                                    console.log(msg);
+                                    cb(null, null);
+                                }
+                            };
+                            SteviaManager.files.upload(config);
+                        },
+                        function(file, cb) {
+                            if (file != null) {
+                                var attr = {
+                                    name: me.$.pathwayNameField.value,
+                                    id: me.$.pathwayIdField.value
+                                };
+                                SteviaManager.updateFileAttributes(file._id, {
+                                    pathwayMaker: attr
+                                }, function() {
+                                    cb(null);
+                                });
+                            } else {
+                                cb(null)
+                            }
+                        }
+                    ], function(err) {
+                        me.fire('need-refresh');
+                        me.set('loading', false);
+                    });
+                }
+            },
+            _createDownloadTask: function(file) {
+                return function(cb) {
+                    if (file != null) {
+                        SteviaManager.files.download({
+                            id: file._id,
+                            request: {
+                                success: function(response, req) {
+                                    cb(null, response);
+                                }
+                            }
+                        });
+                    } else {
+                        cb(null, null);
+                    }
+                }
+            },
+            _createSaveTask: function(file, content) {
+                return function(cb) {
+                    if (file != null) {
+                        SteviaManager.files.write({
+                            id: file._id,
+                            request: {
+                                method: 'POST',
+                                headers: {
+                                    "Content-Type": "text/plain"
+                                },
+                                body: content,
+                                success: function(response) {
+                                    if (response.response[0].error == null) {
+                                        cb(null);
+                                    } else {
+                                        console.log(response.response[0].error);
+                                        cb(response.response[0].error);
+                                    }
+                                },
+                                error: function() {
+                                    cb('Server error, try again later.');
+                                }
+                            }
+
+                        });
+                    } else {
+                        cb(null, null);
+                    }
+                }
+            },
+            handleLogin: function() {
+                if (Cookies('bioinfo_user').indexOf("anonymous___") != -1) {
+                    this.setMenu('home');
+                } else {
+                    this.setMenu('home');
+                }
+                if (this._lastLoggedPanel) {
+                    this._lastLoggedPanel.show();
+                    this._lastLoggedPanel = null;
+                }
+                if (this._lastLoggedMenu) {
+                    this.setMenu(this._lastLoggedMenu);
+                    this._lastLoggedMenu = null;
+                }
+                this.checkShowMenuOnLogin();
+            },
+            handleLogout: function() {
+                this.setMenu('home');
+                this.checkShowMenuOnLogin();
+            },
+            handleUserNeedRefresh: function() {
+                this.$.stvHeader.getUserInfo(true);
+            },
+            isNull: function(o) {
+                return o == null;
+            }
+        });
+    </script>
+</dom-module>
