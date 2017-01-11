@@ -93,7 +93,8 @@
             margin: 0 0 0 10px;
         }
 
-        #right-bar {
+        #right-bar,
+        #left-bar {
             position: relative;
             box-sizing: border-box;
             height: 28px;
@@ -101,7 +102,8 @@
             padding-bottom: 5px;
         }
 
-        #right-bar * {
+        #right-bar *,
+        #left-bar * {
             margin: 0 5px;
         }
 
@@ -115,7 +117,7 @@
 
         network-viewer {
             box-sizing: border-box;
-            height: calc(100vh - 80px);
+            height: calc(100vh - 52px);
             box-shadow: 0px 0px 2px 1px rgba(0, 0, 0, 0.2);
             border: 1px solid #ccc;
         }
@@ -160,43 +162,44 @@
 
         <div id="main" class="content" menu-option="home">
             <div id="left">
-                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" bioformats="{{bioformats}}" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}">
+                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" on-filedelete="handleFileDelete" bioformats="{{bioformats}}" mode="file" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}">
                     <!-- <div class="custom-button button stv-btn stv-btn-shdw" file-ext="sif" on-click="handleSavePathway">
                         <i class="fa fa-cloud-upload"></i>
                     </div> -->
                 </stv-file-browser>
             </div>
             <div id="right">
-                <div id="right-bar" class="horizontal layout center">
-                    <div style="margin-left:15px;">{{lastFile.name}}</div>
-                    <div style="margin-left:15px;">{{lastFile.attributes.pathwayMaker.name}}</div>
-                    <div data-disabled$="{{isNull(lastFile)}}" class="custom-button button stv-btn stv-btn-shdw" on-click="handleSavePathway">
-                        <i class="fa fa-cloud-upload"></i> Save
-                    </div>
-                    <div class="custom-button button stv-btn stv-btn-shdw" on-click="handleCreatePathway">
-                        <i class="fa fa-cloud-upload"></i> Create new
-                    </div>
-                    <div>
-                        <input id="pathwayNameField" class="stv" type="text" placeholder="Pathway name" />
-                    </div>
-                    <div>
-                        <input id="pathwayIdField" class="stv" type="text" placeholder="Pathway id" />
-                    </div>
-                    <div hidden="{{!loading}}" style="margin-left:15px;">
-                        <i class="fa fa-circle-o-notch fa-spin"></i> Loading...
-                    </div>
-                </div>
-                <network-viewer id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver">
+                <network-viewer id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver" on-update-row="handleUpdateRow">
                 </network-viewer>
             </div>
         </div>
         <div class="content" menu-option="home">
-            <stv-panel id="fileBrowserPanel" hidden collapsible movable closable expandible resizable on-hidden="handlePanelHidden">
+            <!-- <stv-panel id="fileBrowserPanel" hidden collapsible movable closable expandible resizable on-hidden="handlePanelHidden">
                 <div class="header">
                     <i class="fa fa-cloud"></i>&nbsp; Browse my data
                 </div>
-                <stv-file-browser id="fileBrowser" class="container flex" on-fileselect="off" bioformats="{{bioformats}}" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}">
+                <stv-file-browser id="fileBrowser" class="container flex" on-fileselect="off" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}">
                 </stv-file-browser>
+            </stv-panel> -->
+            <stv-panel id="createPathwayPanel" hidden fixed modal on-hidden="handlePanelHidden">
+                <div class="header">
+                    <i class="fa fa-plus"></i>&nbsp; Create new pathway
+                </div>
+                <div class="container flex" style="padding:30px 30px;width:200px;">
+                    <label class="stv">Pathway name:</label>
+                    <div>
+                        <input id="pathwayNameField" class="stv" type="text" placeholder="name..." />
+                    </div>
+                    <br>
+                    <label class="stv">Pathway id:</label>
+                    <div>
+                        <input id="pathwayIdField" class="stv" type="text" placeholder="id..." />
+                    </div>
+                </div>
+                <div class="footer horizontal layout center end-justified flex">
+                    <div class="stv-btn stv-red stv-btn-shdw" style="width:100px;margin:5px;" on-click="handleCloseCreatePathway">Cancel</div>
+                    <div class="stv-btn stv-blue stv-btn-shdw" style="width:100px;" on-click="handleCreatePathway">OK</div>
+                </div>
             </stv-panel>
         </div>
 
@@ -212,11 +215,25 @@
             </span>
 
             <div id="menu" class="menu horizontal layout center flex">
-                <div style="margin-left:4vw;"></div>
-                <div title="Browse my data" class="option" on-click="handleMenuPanel" login-required data-panel="fileBrowserPanel">
+                <div title="" style="margin-left:10px;width:30px;">
+                    <span hidden$="{{!loading}}" class="option-text"><i class="fa fa-circle-o-notch fa-spin"></i></span>
+                </div>
+                <div style="margin-left:2vw;"></div>
+                <div title="Browse my data" class="option" on-click="handleMenuPanel" login-required data-panel="createPathwayPanel">
+                    <i class="fa fa-plus"></i>
+                    <span class="option-text">Create new...</span>
+                </div>
+                <div title="" class="option" hidden$="{{isNull(lastFile)}}" on-click="handleSavePathway">
+                    <span class="option-text"><i class="fa fa-cloud-upload"></i> Save</span>
+                </div>
+                <div style="margin-left:5px;"></div>
+                <div title="Last loaded pathway" style="font-weight:bold;">
+                    <span class="option-text">{{processName(lastFile)}}</span>
+                </div>
+                <!-- <div title="Browse my data" class="option" on-click="handleMenuPanel" login-required data-panel="fileBrowserPanel">
                     <i class="fa fa-cloud"></i>
                     <span class="option-text">My data</span>
-                </div>
+                </div> -->
             </div>
 
             <!-- <stv-launcher class="launcher" dropdown-position="left" data-src="conf/test-apps.json">
@@ -266,7 +283,7 @@
                 bioformats: {
                     type: Array,
                     notify: true,
-                    value: [BIOFORMATS["NONE"]]
+                    value: [BIOFORMATS["SIMPLE_INTERACTION_FILE"]]
                 },
                 lastFile: {
                     type: Object,
@@ -295,128 +312,214 @@
             ready: function() {
                 var me = this;
                 this.checkShowMenuOnLogin();
+                this.createColumns();
             },
             handleStartOver: function(e) {
                 this.set('lastFile', null);
+                this.createColumns();
+            },
+            createColumns: function() {
+                var vAttributes = [
+                    'label',
+                    'labelSize',
+                    'opacity',
+                    'shape',
+                    'color',
+                    'strokeColor',
+                    'size',
+                    'strokeSize'
+                ];
+                var vColumns = [];
+                for (var i = 0; i < vAttributes.length; i++) {
+                    var name = vAttributes[i];
+                    vColumns.push(this._createColumn(name));
+                }
+                this.$.networkViewer.addVertexColumns(vColumns);
+
+                var eAttributes = [
+                    'label',
+                    'labelSize',
+                    'opacity',
+                    'shaft',
+                    'shape',
+                    'bidirectional',
+                    'color',
+                    'size'
+                ];
+                var eColumns = [];
+                for (var i = 0; i < eAttributes.length; i++) {
+                    var name = eAttributes[i];
+                    eColumns.push(this._createColumn(name));
+                }
+                this.$.networkViewer.addEdgeColumns(eColumns);
+            },
+            _createColumn: function(name) {
+                return {
+                    name: name,
+                    title: stv.utils.capitalize(name),
+                    type: "text",
+                    formula: function(row) {
+                        return row.attributes[this.name];
+                    },
+                    editFormula: function(row, newVal) {
+                        row.attributes[this.name] = newVal;
+                    }
+                }
             },
             handleFileSelect: function(e) {
                 var me = this;
                 var file = e.detail.file;
                 if (!this.loading && file != null) {
-                    if (stv.utils.endsWithIgnoreCase(file.name, '.sif')) {
-                        this.set('loading', true);
-                        var prefixName = file.name.substr(0, file.name.length - 4);
-                        var nattFile = null;
-                        var eattFile = null;
-                        for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
-                            var f = this.$.fileBrowserLeft.files[i];
-                            if (f.name == prefixName + '.natt') {
-                                nattFile = f;
-                            }
-                            if (f.name == prefixName + '.eatt') {
-                                eattFile = f;
-                            }
+                    if(this.lastFile != null){
+                        if(this.lastFile._id != file._id){
+                            new StvDialog().confirm('Do you want to save changes before select another pathway?',function(bool){
+                                if(bool){
+                                    me._savePathway(me.lastFile, function(){
+                                        me._selectFile(file);
+                                    });
+                                }
+                            });
                         }
-                        var tasks = {
-                            sif: this._createDownloadTask(file),
-                            natt: this._createDownloadTask(nattFile),
-                            eatt: this._createDownloadTask(eattFile)
-                        };
-                        async.parallel(tasks, function(err, results) {
-                            me.$.networkViewer.startOver();
-                            var sif = results.sif;
-                            var natt = results.natt;
-                            var eatt = results.eatt;
-                            if (sif) {
-                                me.$.networkViewer.loadSif(sif);
-                                me.$.networkViewer.lastLoadedFileName = file.name;
-                                me.$.networkViewer.centerNetwork();
-                            }
-                            if (natt) {
-                                me.$.networkViewer.loadNodeAttributes(natt, natt.charAt(0) != '#');
-                                var ncolmap = {};
-                                for (var i = 0; i < me.$.networkViewer.vertexColumns.length; i++) {
-                                    var col = me.$.networkViewer.vertexColumns[i];
-                                    ncolmap[col.name] = col;
-                                }
-                                if (ncolmap['label'] != null) {
-                                    me.$.networkViewer.setVertexDefaultLabelAttribute('label');
-                                }
-                                if (ncolmap['labelSize'] != null) {
-                                    me.$.networkViewer.$.nodeRender.applyDirect('labelSize', 'labelSize');
-                                }
-                                if (ncolmap['opacity'] != null) {
-                                    me.$.networkViewer.$.nodeRender.applyDirect('opacity', 'opacity');
-                                }
-                                if (ncolmap['shape'] != null) {
-                                    me.$.networkViewer.$.nodeRender.applyDirect('shape', 'shape');
-                                }
-                                if (ncolmap['color'] != null) {
-                                    me.$.networkViewer.$.nodeRender.applyDirect('color', 'color');
-                                }
-                                if (ncolmap['strokeColor'] != null) {
-                                    me.$.networkViewer.$.nodeRender.applyDirect('strokeColor', 'strokeColor');
-                                }
-                                if (ncolmap['size'] != null) {
-                                    me.$.networkViewer.$.nodeRender.applyDirect('size', 'size');
-                                }
-                                if (ncolmap['strokeSize'] != null) {
-                                    me.$.networkViewer.$.nodeRender.applyDirect('strokeSize', 'strokeSize');
-                                }
-
-                                // me.$.networkViewer.$.nodeRender.applyDirect('exp', 'strokeColor');
-                                // me.$.networkViewer.$.nodeRender.applyDirect('diff.exp', 'color');
-                                // me.$.networkViewer.$.nodeRender.applyDirect('width', 'size');
-                            } else {
-                                me.$.networkViewer.setLayout('Force directed');
-                            }
-                            if (eatt) {
-                                me.$.networkViewer.loadEdgeAttributes(eatt, eatt.charAt(0) != '#');
-                                var ecolmap = {};
-                                for (var i = 0; i < me.$.networkViewer.edgeColumns.length; i++) {
-                                    var col = me.$.networkViewer.edgeColumns[i];
-                                    ecolmap[col.name] = col;
-                                }
-                                if (ecolmap['label'] != null) {
-                                    me.$.networkViewer.setEdgeDefaultLabelAttribute('label');
-                                }
-                                if (ecolmap['labelSize'] != null) {
-                                    me.$.networkViewer.$.edgeRender.applyDirect('labelSize', 'labelSize');
-                                }
-                                if (ecolmap['opacity'] != null) {
-                                    me.$.networkViewer.$.edgeRender.applyDirect('opacity', 'opacity');
-                                }
-                                if (ecolmap['shaft'] != null) {
-                                    me.$.networkViewer.$.edgeRender.applyDirect('shaft', 'shaft');
-                                }
-                                if (ecolmap['shape'] != null) {
-                                    me.$.networkViewer.$.edgeRender.applyDirect('shape', 'shape');
-                                }
-                                if (ecolmap['bidirectional'] != null) {
-                                    me.$.networkViewer.$.edgeRender.applyDirect('bidirectional', 'bidirectional');
-                                }
-                                if (ecolmap['color'] != null) {
-                                    me.$.networkViewer.$.edgeRender.applyDirect('color', 'color');
-                                }
-                                if (ecolmap['size'] != null) {
-                                    me.$.networkViewer.$.edgeRender.applyDirect('size', 'size');
-                                }
-                                // me.$.networkViewer.$.edgeRender.applyDirect('head', 'shape');
-                            }
-                            me.set('loading', false);
-
-                            me.set('lastFile', file);
-                        });
+                    }else{
+                        me._selectFile(file);
                     }
                 }
             },
-            handleSavePathway: function(e) {
+            _selectFile:function(file){
                 var me = this;
-                var file = this.lastFile;
-                if (!this.loading && stv.utils.endsWithIgnoreCase(file.name, '.sif')) {
+                if (stv.utils.endsWithIgnoreCase(file.name, '.sif')) {
+                    this.set('loading', true);
+                    var prefixName = file.name.substr(0, file.name.length - 4);
+                    var nattFile = null;
+                    var eattFile = null;
+                    var nvbgFile = null;
+                    for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
+                        var f = this.$.fileBrowserLeft.files[i];
+                        if (f.name == prefixName + '.natt') {
+                            nattFile = f;
+                        }
+                        if (f.name == prefixName + '.eatt') {
+                            eattFile = f;
+                        }
+                        if (f.name == prefixName + '.nvbg') {
+                            nvbgFile = f;
+                        }
+                    }
+                    var tasks = {
+                        sif: this._createDownloadTask(file),
+                        natt: this._createDownloadTask(nattFile),
+                        eatt: this._createDownloadTask(eattFile),
+                        nvbg: this._createDownloadTask(nvbgFile),
+                    };
+                    async.parallel(tasks, function(err, results) {
+                        me.$.networkViewer.startOver();
+                        var sif = results.sif;
+                        var natt = results.natt;
+                        var eatt = results.eatt;
+                        var nvbg = results.nvbg;
+                        if (sif) {
+                            me.$.networkViewer.loadSif(sif);
+                            me.$.networkViewer.lastLoadedFileName = file.name;
+                            me.$.networkViewer.centerNetwork();
+                        }
+                        if (natt) {
+                            me.$.networkViewer.loadNodeAttributes(natt, natt.charAt(0) != '#');
+                            me.updateNodeAttributes();
+                        } else {
+                            me.$.networkViewer.setLayout('Force directed');
+                        }
+                        if (eatt) {
+                            me.$.networkViewer.loadEdgeAttributes(eatt, eatt.charAt(0) != '#');
+                            me.updateEdgeAttributes();
+                        }
+                        if (nvbg) {
+                            me.$.networkViewer.loadBackground(nvbg);
+                        }
+                        me.set('loading', false);
+
+                        me.set('lastFile', file);
+                    });
+                }
+            },
+            handleUpdateRow: function(e) {
+                this.updateNodeAttributes();
+                this.updateEdgeAttributes();
+            },
+            updateNodeAttributes: function() {
+                var ncolmap = {};
+                for (var i = 0; i < this.$.networkViewer.vertexColumns.length; i++) {
+                    var col = this.$.networkViewer.vertexColumns[i];
+                    ncolmap[col.name] = col;
+                }
+                if (ncolmap['label'] != null) {
+                    this.$.networkViewer.setVertexDefaultLabelAttribute('label');
+                }
+                if (ncolmap['labelSize'] != null) {
+                    this.$.networkViewer.$.nodeRender.applyDirect('labelSize', 'labelSize');
+                }
+                if (ncolmap['opacity'] != null) {
+                    this.$.networkViewer.$.nodeRender.applyDirect('opacity', 'opacity');
+                }
+                if (ncolmap['shape'] != null) {
+                    this.$.networkViewer.$.nodeRender.applyDirect('shape', 'shape');
+                }
+                if (ncolmap['color'] != null) {
+                    this.$.networkViewer.$.nodeRender.applyDirect('color', 'color');
+                }
+                if (ncolmap['strokeColor'] != null) {
+                    this.$.networkViewer.$.nodeRender.applyDirect('strokeColor', 'strokeColor');
+                }
+                if (ncolmap['size'] != null) {
+                    this.$.networkViewer.$.nodeRender.applyDirect('size', 'size');
+                }
+                if (ncolmap['strokeSize'] != null) {
+                    this.$.networkViewer.$.nodeRender.applyDirect('strokeSize', 'strokeSize');
+                }
+
+                // me.$.networkViewer.$.nodeRender.applyDirect('exp', 'strokeColor');
+                // me.$.networkViewer.$.nodeRender.applyDirect('diff.exp', 'color');
+                // me.$.networkViewer.$.nodeRender.applyDirect('width', 'size');
+            },
+            updateEdgeAttributes: function() {
+                var ecolmap = {};
+                for (var i = 0; i < this.$.networkViewer.edgeColumns.length; i++) {
+                    var col = this.$.networkViewer.edgeColumns[i];
+                    ecolmap[col.name] = col;
+                }
+                if (ecolmap['label'] != null) {
+                    this.$.networkViewer.setEdgeDefaultLabelAttribute('label');
+                }
+                if (ecolmap['labelSize'] != null) {
+                    this.$.networkViewer.$.edgeRender.applyDirect('labelSize', 'labelSize');
+                }
+                if (ecolmap['opacity'] != null) {
+                    this.$.networkViewer.$.edgeRender.applyDirect('opacity', 'opacity');
+                }
+                if (ecolmap['shaft'] != null) {
+                    this.$.networkViewer.$.edgeRender.applyDirect('shaft', 'shaft');
+                }
+                if (ecolmap['shape'] != null) {
+                    this.$.networkViewer.$.edgeRender.applyDirect('shape', 'shape');
+                }
+                if (ecolmap['bidirectional'] != null) {
+                    this.$.networkViewer.$.edgeRender.applyDirect('bidirectional', 'bidirectional');
+                }
+                if (ecolmap['color'] != null) {
+                    this.$.networkViewer.$.edgeRender.applyDirect('color', 'color');
+                }
+                if (ecolmap['size'] != null) {
+                    this.$.networkViewer.$.edgeRender.applyDirect('size', 'size');
+                }
+                // me.$.networkViewer.$.edgeRender.applyDirect('head', 'shape');
+            },
+            handleFileDelete: function(e) {
+                var me = this;
+                var file = e.detail.file;
+                if (!this.loading && file != null && file.bioformat == "SIMPLE_INTERACTION_FILE") {
                     this.set('loading', true);
                     var nattFile = null;
                     var eattFile = null;
+                    var nvbgFile = null;
                     var prefixName = file.name.substr(0, file.name.length - 4);
                     for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
                         var f = this.$.fileBrowserLeft.files[i];
@@ -425,6 +528,57 @@
                         }
                         if (f.name == prefixName + '.eatt') {
                             eattFile = f;
+                        }
+                        if (f.name == prefixName + '.nvbg') {
+                            nvbgFile = f;
+                        }
+                    }
+                    var tasks = {};
+                    if (nattFile != null) {
+                        tasks['natt'] = this._createDeleteTask(nattFile);
+                    }
+                    if (eattFile != null) {
+                        tasks['eatt'] = this._createDeleteTask(eattFile);
+                    }
+                    if (eattFile != null) {
+                        tasks['nvbg'] = this._createDeleteTask(nvbgFile);
+                    }
+                    async.parallel(tasks, function(err, results) {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            console.log(results);
+                            console.log('Delete done');
+                            me.set('lastFile', null);
+                        }
+                        me.set('loading', false);
+                    });
+                }
+            },
+            handleSavePathway: function(e) {
+                var me = this;
+                this._savePathway(this.lastFile, function(){
+
+                });
+            },
+            _savePathway:function(file, cb){
+                var me = this;
+                if (!this.loading && file != null && stv.utils.endsWithIgnoreCase(file.name, '.sif')) {
+                    this.set('loading', true);
+                    var nattFile = null;
+                    var eattFile = null;
+                    var nvbgFile = null;
+                    var prefixName = file.name.substr(0, file.name.length - 4);
+                    for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
+                        var f = this.$.fileBrowserLeft.files[i];
+                        if (f.name == prefixName + '.natt') {
+                            nattFile = f;
+                        }
+                        if (f.name == prefixName + '.eatt') {
+                            eattFile = f;
+                        }
+                        if (f.name == prefixName + '.nvbg') {
+                            nvbgFile = f;
                         }
                     }
                     var tasks = {};
@@ -437,6 +591,9 @@
                     if (eattFile != null) {
                         tasks['eatt'] = this._createSaveTask(eattFile, this.$.networkViewer.exportEdgeAttributes());
                     }
+                    if (eattFile != null) {
+                        tasks['nvbg'] = this._createSaveTask(nvbgFile, this.$.networkViewer.exportBackground());
+                    }
                     async.parallel(tasks, function(err, results) {
                         if (err) {
                             console.log(err);
@@ -445,6 +602,7 @@
                             console.log('Save done');
                         }
                         me.set('loading', false);
+                        cb();
                     });
                 }
             },
@@ -452,56 +610,45 @@
                 var me = this;
                 if (!this.loading && this.$.pathwayNameField.value != "" && this.$.pathwayIdField.value != null) {
                     this.set('loading', true);
-
-                    async.waterfall([
+                    var pwFieldId = this.$.pathwayIdField.value;
+                    async.series([
                         function(cb) {
-                            var content = me.$.networkViewer.exportGraph();
-                            var blob = new Blob([content], {
-                                type: "text/plain"
-                            });
-                            var config = {
-                                parentId: me.$.fileBrowserLeft.folder._id,
-                                file: blob,
-                                name: me.$.pathwayIdField.value + '.sif',
-                                bioFormat: '',
-                                callbackProgress: function(chunk, total, response) {
-                                    // console.log(Math.round((chunk.id / total) * 100));
-                                    if (chunk.last) {
-                                        var uploadedFile = response.file;
-                                        cb(null, uploadedFile);
-                                    }
-                                },
-                                callbackExists: function(file) {
+                            SteviaManager.getFileByPath(me.$.fileBrowserLeft.folder.path + '/' + pwFieldId + '.sif', function(file) {
+                                if (file != null) {
+                                    cb('File already exists');
                                     new StvDialog().alert('File already exists with that name. Please select a different name.');
-                                    cb(null, null);
-                                },
-                                error: function(msg) {
-                                    console.log(msg);
-                                    cb(null, null);
-                                }
-                            };
-                            SteviaManager.files.upload(config);
-                        },
-                        function(file, cb) {
-                            if (file != null) {
-                                var attr = {
-                                    name: me.$.pathwayNameField.value,
-                                    id: me.$.pathwayIdField.value
-                                };
-                                SteviaManager.updateFileAttributes(file._id, {
-                                    pathwayMaker: attr
-                                }, function() {
+                                } else {
                                     cb(null);
-                                });
-                            } else {
-                                cb(null)
-                            }
+                                }
+                            });
+                        },
+                        this._createUplaodTask(pwFieldId + '.sif', this.$.networkViewer.exportGraph(), 'SIMPLE_INTERACTION_FILE'),
+                        this._createUplaodTask(pwFieldId + '.natt', this.$.networkViewer.exportVertexAttributes()),
+                        this._createUplaodTask(pwFieldId + '.eatt', this.$.networkViewer.exportEdgeAttributes()),
+                        this._createUplaodTask(pwFieldId + '.nvbg', this.$.networkViewer.exportBackground()),
+                    ], function(err, res) {
+                        var sifFile = res[1];
+                        var nattFile = res[2];
+                        var eattFile = res[3];
+                        var nvbgFile = res[4];
+                        if (sifFile != null) {
+                            var attr = {
+                                name: me.$.pathwayNameField.value,
+                                id: me.$.pathwayIdField.value
+                            };
+                            SteviaManager.updateFileAttributes(sifFile._id, {
+                                pathwayMaker: attr
+                            }, function() {
+                                me.$.createPathwayPanel.hide();
+                            });
                         }
-                    ], function(err) {
                         me.fire('need-refresh');
                         me.set('loading', false);
                     });
                 }
+            },
+            handleCloseCreatePathway: function() {
+                this.$.createPathwayPanel.hide();
             },
             _createDownloadTask: function(file) {
                 return function(cb) {
@@ -512,6 +659,41 @@
                                 success: function(response, req) {
                                     cb(null, response);
                                 }
+                            }
+                        });
+                    } else {
+                        cb(null, null);
+                    }
+                }
+            },
+            _createUplaodTask: function(name, content, bioformat) {
+                if (bioformat == null) {
+                    bioformat = '';
+                }
+                var parentId = this.$.fileBrowserLeft.folder._id;
+                return function(cb) {
+                    if (name != null) {
+                        var blob = new Blob([content], {
+                            type: "text/plain"
+                        });
+                        SteviaManager.files.upload({
+                            parentId: parentId,
+                            file: blob,
+                            name: name,
+                            bioFormat: bioformat,
+                            callbackProgress: function(chunk, total, response) {
+                                // console.log(Math.round((chunk.id / total) * 100));
+                                if (chunk.last) {
+                                    var uploadedFile = response.file;
+                                    cb(null, uploadedFile);
+                                }
+                            },
+                            callbackExists: function(file) {
+                                cb(null, file);
+                            },
+                            error: function(msg) {
+                                console.log(msg);
+                                cb(null, null);
                             }
                         });
                     } else {
@@ -547,6 +729,38 @@
                     } else {
                         cb(null, null);
                     }
+                }
+            },
+            _createDeleteTask: function(file) {
+                return function(cb) {
+                    if (file != null) {
+                        SteviaManager.files.delete({
+                            id: file._id,
+                            request: {
+                                success: function(response) {
+                                    if (response.response[0].error == null) {
+                                        cb(null);
+                                    } else {
+                                        console.log(response.response[0].error);
+                                        cb(response.response[0].error);
+                                    }
+                                },
+                                error: function() {
+                                    cb('Server error, try again later.');
+                                }
+                            }
+                        });
+                    } else {
+                        cb(null, null);
+                    }
+                }
+            },
+            processName: function(file) {
+                if (file != null) {
+                    var prefixName = file.name.substr(0, file.name.length - 4);
+                    return file.attributes.pathwayMaker.name + '  ( ' + prefixName + ' )';
+                } else {
+                    return '';
                 }
             },
             handleLogin: function() {
