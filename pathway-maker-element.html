@@ -166,7 +166,7 @@
 
         <div id="main" class="content" menu-option="home">
             <div id="left">
-                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" on-filedelete="handleFileDelete" bioformats="{{bioformats}}" mode="" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}" hide-file-column hide-upload-btn>
+                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" on-filedelete="handleFileDelete" bioformats="{{bioformats}}" mode="fileOFFFF" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}" hide-file-column hide-upload-btn>
                     <!-- <div class="custom-button button stv-btn stv-btn-shdw" file-ext="sif" on-click="handleSavePathway">
                         <i class="fa fa-cloud-upload"></i>
                     </div> -->
@@ -350,7 +350,7 @@
                             if (f.type == 'FOLDER') {
                                 return '';
                             } else {
-                                var split = f.name.split('-.-');
+                                var split = f.name.split('-');
                                 if (split.length > 1) {
                                     // return split[1].substr(0, split[1].length - 4);
                                     return split[1];
@@ -367,7 +367,7 @@
                             if (f.type == 'FOLDER') {
                                 return '';
                             } else {
-                                var split = f.name.split('-.-');
+                                var split = f.name.split('-');
                                 return split[0];
                             }
                         }
@@ -530,6 +530,9 @@
                         me.set('lastFile', file);
                         me.set('lastFileChecksum', me._createChecksum(sif, natt, eatt, nbg, nvs));
                     });
+                } else {
+                    me.set('lastFile', null);
+                    me.set('lastFileChecksum', null);
                 }
             },
             _createChecksum: function(sif, natt, eatt, nbg, nvs) {
@@ -753,7 +756,7 @@
                     this.set('loading', true);
                     var pwFieldId = this.$.pathwayIdField.value;
                     var pwFieldName = this.$.pathwayNameField.value;
-                    var fileName = pwFieldId + '-.-' + pwFieldName;
+                    var fileName = pwFieldId + '-' + pwFieldName;
 
                     SteviaManager.getFileByPath(me.$.fileBrowserLeft.folder.path + '/' + fileName + '.sif', function(file) {
                         if (file != null) {
@@ -992,11 +995,26 @@
             },
             handleExportPathway: function(e) {
                 var parentId = this.$.fileBrowserLeft.folder._id;
-                SteviaManager.downloadFile(parentId);
+                if (this.$.exportForm.elements['export'].value == 'directory') {
+                    SteviaManager.downloadFolderFiles(parentId, '+(*.sif|*.natt|*.eatt|*.nbg|*.nvs)');
+                } else {
+                    if (this.lastFile != null) {
+                        var prefixName = this.lastFile.name.substr(0, this.lastFile.name.length - 4);
+                        var fileNames = [
+                            prefixName + '.sif',
+                            prefixName + '.natt',
+                            prefixName + '.eatt',
+                            prefixName + '.nbg',
+                            prefixName + '.nvs'
+                        ]
+                        SteviaManager.downloadFolderFiles(parentId, '+(' + fileNames.join('|') + ')');
+                    }
+                }
+
             },
             processName: function(file) {
                 if (file != null) {
-                    var split = file.name.split('-.-');
+                    var split = file.name.split('-');
                     return split[1].substr(0, split[1].length - 4) + '  ( ' + split[0] + ' )';
                 } else {
                     return '';
