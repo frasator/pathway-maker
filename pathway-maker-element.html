@@ -166,15 +166,29 @@
 
         <div id="main" class="content" menu-option="home">
             <div id="left">
-                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" on-filedelete="handleFileDelete" bioformats="{{bioformats}}" mode="fileOFFFF" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}" hide-file-column hide-upload-btn>
+                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" on-filedelete="handleFileDelete" bioformats="{{bioformats}}" mode="file" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}" hide-file-column hide-upload-btn>
                     <!-- <div class="custom-button button stv-btn stv-btn-shdw" file-ext="sif" on-click="handleSavePathway">
                         <i class="fa fa-cloud-upload"></i>
                     </div> -->
                 </stv-file-browser>
             </div>
             <div id="right">
-                <network-viewer hide-external id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver" on-update-row="handleUpdateRow">
+                <network-viewer hide-external id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver" on-update-row="handleUpdateRow" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge">
                 </network-viewer>
+                <stv-dropdown id="nodeDropdown">
+                    <ul data-menu>
+                        <li on-click="handleSetAsGene">Gene</li>
+                        <li on-click="handleSetAsMetabolite">Metabolite</li>
+                        <li on-click="handleSetAsFunction">Function</li>
+                    </ul>
+                </stv-dropdown>
+                <stv-dropdown id="edgeDropdown">
+                    <ul data-menu>
+                        <li on-click="handleSetAsActivation">Activation</li>
+                        <li on-click="handleSetAsInhibition">Inhibition</li>
+                        <li on-click="handleSwapEdgeDirection">Swap direction</li>
+                    </ul>
+                </stv-dropdown>
             </div>
         </div>
         <div class="content" menu-option="home">
@@ -272,7 +286,7 @@
                     <span class="option-text">Export...</span>
                 </div>
                 <div style="margin-left:20px;"></div>
-                <div title="Browse my data" class="option" on-click="handleMenuPanel" login-required data-panel="fileBrowserPanel">
+                <div hidden title="Browse my data" class="option" on-click="handleMenuPanel" login-required data-panel="fileBrowserPanel">
                     <i class="fa fa-cloud"></i>
                     <span class="option-text">My data</span>
                 </div>
@@ -352,8 +366,8 @@
                             } else {
                                 var split = f.name.split('-');
                                 if (split.length > 1) {
-                                    // return split[1].substr(0, split[1].length - 4);
-                                    return split[1];
+                                    return split[1].substr(0, split[1].length - 4);
+                                    // return split[1];
                                 } else {
                                     return '';
                                 }
@@ -378,6 +392,60 @@
                 var me = this;
                 this.checkShowMenuOnLogin();
                 this.createColumns();
+            },
+            handleRightClickVertex: function(e) {
+                this.$.edgeDropdown.hideMenu();
+                this.$.nodeDropdown.showMenu(e.detail.e.x, e.detail.e.y);
+            },
+            handleRightClickEdge: function(e) {
+                this.$.nodeDropdown.hideMenu();
+                this.$.edgeDropdown.showMenu(e.detail.e.x, e.detail.e.y);
+            },
+            handleSetAsGene: function(e) {
+                var vertex = this.$.networkViewer.lastContextVertex;
+                if (vertex) {
+                    vertex.attributes.shape = 'ellipse';
+                    vertex.attributes.size = 40;
+                    this.updateNodeAttributes();
+                    // this.updateEdgeAttributes();
+                }
+            },
+            handleSetAsMetabolite: function(e) {
+                var vertex = this.$.networkViewer.lastContextVertex;
+                if (vertex) {
+                    vertex.attributes.shape = 'circle';
+                    vertex.attributes.size = 25;
+                    this.updateNodeAttributes();
+                }
+            },
+            handleSetAsFunction: function(e) {
+                var vertex = this.$.networkViewer.lastContextVertex;
+                if (vertex) {
+                    vertex.attributes.shape = 'rectangle';
+                    vertex.attributes.size = 40;
+                    this.updateNodeAttributes();
+                }
+            },
+            handleSwapEdgeDirection: function(e) {
+                var edge = this.$.networkViewer.lastContextEdge;
+                if (edge) {
+                    this.$.networkViewer.swapEdgeDirection(edge);
+                    this.updateEdgeAttributes();
+                }
+            },
+            handleSetAsActivation: function(e) {
+                var edge = this.$.networkViewer.lastContextEdge;
+                if (edge) {
+                    edge.attributes.shape = 'directed';
+                    this.updateEdgeAttributes();
+                }
+            },
+            handleSetAsInhibition: function(e) {
+                var edge = this.$.networkViewer.lastContextEdge;
+                if (edge) {
+                    edge.attributes.shape = 'inhibited';
+                    this.updateEdgeAttributes();
+                }
             },
             handleStartOver: function(e) {
                 this.set('lastFile', null);
