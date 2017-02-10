@@ -1,9 +1,9 @@
 {
-    "name": "stevia-scaffold",
-    "version": "0.1.0",
+    "name": "pathway-maker",
+    "version": "1.0.0-rc.1",
     "homepage": "",
     "authors": [
-        "user <user@domain.com>"
+        "Francisco Salavert Torres <frasator@gmail.com>"
     ],
     "license": "GPLv2",
     "private": true,

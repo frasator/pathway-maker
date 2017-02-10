@@ -1,7 +1,8 @@
 {
-    "name": "stevia-scaffold",
-    "version": "0.1.0",
+    "name": "pathway-maker",
+    "version": "1.0.0-rc.1",
     "description": "",
+    "author": "Francisco Salavert Torres <frasator@gmail.com>",
     "repository": {
         "type": "git",
         "url": ""
@@ -12,6 +13,6 @@
     "devDependencies": {
         "async": "^2.0.0-rc.6",
         "shelljs": "^0.7.0",
-        "vulcanize": "1.14.8"
+        "vulcanize": "^1.14.8"
     }
 }

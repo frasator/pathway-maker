@@ -1015,12 +1015,14 @@
                     async.waterfall([
                         function(cb) {
                             var parentId = me.$.fileBrowserLeft.folder._id;
+                            //TODO: expand on parent folder
                             SteviaManager.files.upload({
                                 parentId: parentId,
                                 file: file,
                                 name: file.name,
                                 // bioFormat: bioformat,
                                 expand: true,
+                                deleteCompressed: true,
                                 callbackProgress: function(chunk, total, response) {
                                     // console.log(Math.round((chunk.id / total) * 100));
                                     if (chunk.last) {
@@ -1044,6 +1046,7 @@
                                     if (stv.utils.endsWithIgnoreCase(f.name, '.sif')) {
                                         tasks.push(me._createSetBioformatTask(f, 'simple_interaction_file'));
                                     }
+                                    //TODO : delete uploaded file
                                 }
                                 async.parallel(tasks, function(err, results) {
                                     cb(null)
@@ -1056,7 +1059,7 @@
                         } else {
                             console.log('Import done')
                         }
-                        // me.fire('need-refresh');
+                        me.fire('need-refresh');
                         // me.set('loading', false);
                     });
                 }
