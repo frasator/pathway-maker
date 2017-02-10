@@ -273,23 +273,23 @@
                     <span class="option-text"><i class="fa fa-save"></i> Save</span>
                 </div>
                 <div style="margin-left:2vw;"></div>
-                <div title="Browse my data" class="option" on-click="handleMenuPanel" login-required data-panel="createPathwayPanel">
+                <div title="Browse my data" class="option" on-click="handleMenuPanel" login-visible data-panel="createPathwayPanel">
                     <i class="fa fa-plus"></i>
                     <span class="option-text">Create new...</span>
                 </div>
-                <div title="Import pathways folder" class="option" on-click="handleImportClick" login-required>
+                <div title="Import pathways folder" class="option" on-click="handleImportClick" login-visible>
                     <i class="fa fa-cloud-upload"></i>
                     <span class="option-text">Import...</span>
                 </div>
-                <div title="Import pathways folder" class="option" on-click="handleMenuPanel" login-required data-panel="exportPathwayPanel">
+                <div title="Import pathways folder" class="option" on-click="handleMenuPanel" login-visible data-panel="exportPathwayPanel">
                     <i class="fa fa-cloud-download"></i>
                     <span class="option-text">Export...</span>
                 </div>
                 <div style="margin-left:20px;"></div>
-                <div hidden title="Browse my data" class="option" on-click="handleMenuPanel" login-required data-panel="fileBrowserPanel">
+                <!-- <div title="Browse my data" class="option" on-click="handleMenuPanel" login-visible data-panel="fileBrowserPanel">
                     <i class="fa fa-cloud"></i>
                     <span class="option-text">My data</span>
-                </div>
+                </div> -->
             </div>
 
             <!-- <stv-launcher class="launcher" dropdown-position="left" data-src="conf/test-apps.json">
@@ -1044,9 +1044,8 @@
                                 for (var i = 0; i < files.length; i++) {
                                     var f = files[i];
                                     if (stv.utils.endsWithIgnoreCase(f.name, '.sif')) {
-                                        tasks.push(me._createSetBioformatTask(f, 'simple_interaction_file'));
+                                        tasks.push(me._createSetBioformatTask(f, 'SIMPLE_INTERACTION_FILE'));
                                     }
-                                    //TODO : delete uploaded file
                                 }
                                 async.parallel(tasks, function(err, results) {
                                     cb(null)
