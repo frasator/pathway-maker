@@ -173,7 +173,7 @@
                 </stv-file-browser>
             </div>
             <div id="right">
-                <network-viewer hide-external id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver" on-update-row="handleUpdateRow" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge">
+                <network-viewer hide-external id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver" on-update-row="handleUpdateRow" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge" on-vertexeditionbar="handleVertexEditionBar" on-edgeeditionbar="handleEdgeEditionBar">
                 </network-viewer>
                 <stv-dropdown id="nodeDropdown">
                     <ul data-menu>
@@ -248,7 +248,43 @@
                     <div class="stv-btn stv-blue stv-btn-shdw" style="width:100px;" on-click="handleExportPathway">OK</div>
                 </div>
             </stv-panel>
-            <input hidden type="file" id="importInput" on-change="handleImportInputChange">
+            <stv-panel id="importPathwayPanel" hidden fixed modal on-hidden="handlePanelHidden">
+                <div class="header">
+                    <i class="fa fa-plus"></i>&nbsp; Import pathways
+                </div>
+                <form id="importForm" class="container flex" style="padding:30px 30px;width:300px;">
+                    <label class="stv">Select file: </label>
+                    <input hidden type="file" id="importInput" on-change="handleImportInputChange">
+                    <div class="stv-btn stv-btn-shdw" id="importInputText" on-click="handleImportClick">Browse file...</div>
+                    <div>
+                        &nbsp;<span id="importInputText" style="margin:3px 4px;"></span>
+                    </div>
+                    <br>
+                    <label class="stv">Extract folder: </label>
+                    <label class="stv-control">
+                        <input type="radio" name="extractFolder" value="current" checked="true">
+                        <span>Use current folder for extraction.</span>
+                    </label>
+                    <label class="stv-control">
+                        <input type="radio" name="extractFolder" value="create">
+                        <span>Create new folder for extraction.</span>
+                    </label>
+                    <br>
+                    <label class="stv">Overwrite/merge files: </label>
+                    <label class="stv-control">
+                        <input type="radio" name="overwrite" value="new" checked="true">
+                        <span>Overwrite server files with uploaded files.</span>
+                    </label>
+                    <label class="stv-control">
+                        <input type="radio" name="overwrite" value="old">
+                        <span>Keep server files untouched.</span>
+                    </label>
+                </form>
+                <div class="footer horizontal layout center end-justified flex">
+                    <div class="stv-btn stv-red stv-btn-shdw" style="width:100px;margin:5px;" on-click="handleCloseImportPathway">Cancel</div>
+                    <div class="stv-btn stv-blue stv-btn-shdw" style="width:100px;" on-click="handleImportPathway">OK</div>
+                </div>
+            </stv-panel>
         </div>
 
         <stv-header id="stvHeader" small selected-option="{{selectedOption}}" user-data="{{userData}}" on-login="handleLogin" on-logout="handleLogout">
@@ -277,7 +313,7 @@
                     <i class="fa fa-plus"></i>
                     <span class="option-text">Create new...</span>
                 </div>
-                <div title="Import pathways folder" class="option" on-click="handleImportClick" login-visible>
+                <div title="Import pathways folder" class="option" on-click="handleMenuPanel" login-visible data-panel="importPathwayPanel">
                     <i class="fa fa-cloud-upload"></i>
                     <span class="option-text">Import...</span>
                 </div>
@@ -286,10 +322,10 @@
                     <span class="option-text">Export...</span>
                 </div>
                 <div style="margin-left:20px;"></div>
-                <!-- <div title="Browse my data" class="option" on-click="handleMenuPanel" login-visible data-panel="fileBrowserPanel">
+                <div title="Browse my data" class="option" on-click="handleMenuPanel" login-visible data-panel="fileBrowserPanel">
                     <i class="fa fa-cloud"></i>
                     <span class="option-text">My data</span>
-                </div> -->
+                </div>
             </div>
 
             <!-- <stv-launcher class="launcher" dropdown-position="left" data-src="conf/test-apps.json">
@@ -596,6 +632,7 @@
                         me.set('loading', false);
 
                         me.set('lastFile', file);
+
                         me.set('lastFileChecksum', me._createChecksum(sif, natt, eatt, nbg, nvs));
                     });
                 } else {
@@ -648,6 +685,8 @@
                 // me.$.networkViewer.$.nodeRender.applyDirect('exp', 'strokeColor');
                 // me.$.networkViewer.$.nodeRender.applyDirect('diff.exp', 'color');
                 // me.$.networkViewer.$.nodeRender.applyDirect('width', 'size');
+
+                this.$.networkViewer.$.nodeAttributeEdit.update();
             },
             updateEdgeAttributes: function() {
                 var ecolmap = {};
@@ -680,6 +719,8 @@
                     this.$.networkViewer.$.edgeRender.applyDirect('size', 'size');
                 }
                 // me.$.networkViewer.$.edgeRender.applyDirect('head', 'shape');
+
+                this.$.networkViewer.$.edgeAttributeEdit.update();
             },
             handleFileDelete: function(e) {
                 var me = this;
@@ -876,6 +917,9 @@
             handleCloseExportPathway: function() {
                 this.$.exportPathwayPanel.hide();
             },
+            handleCloseImportPathway: function() {
+                this.$.importPathwayPanel.hide();
+            },
             _createDownloadTask: function(file) {
                 return function(cb) {
                     if (file != null) {
@@ -983,6 +1027,7 @@
             },
             handleImportClick: function(e) {
                 this.$.importInput.value = null;
+                this.$.importInputText.innerHTML = '';
                 this.$.importInput.click();
             },
             _createSetBioformatTask: function(file, bioformat) {
@@ -1009,20 +1054,25 @@
                 }
             },
             handleImportInputChange: function(e) {
+                this.$.importInputText.innerHTML = this.$.importInput.files[0].name;
+            },
+            handleImportPathway: function(e) {
                 var me = this;
-                var file = e.currentTarget.files[0];
+                var file = this.$.importInput.files[0];
                 if (file != null) {
+                    this.set('loading', true);
                     async.waterfall([
                         function(cb) {
                             var parentId = me.$.fileBrowserLeft.folder._id;
-                            //TODO: expand on parent folder
                             SteviaManager.files.upload({
                                 parentId: parentId,
                                 file: file,
                                 name: file.name,
                                 // bioFormat: bioformat,
-                                expand: true,
+                                extract: true,
                                 deleteCompressed: true,
+                                extractFolder: me.$.importForm.elements['extractFolder'].value == 'create',
+                                overwriteFiles: me.$.importForm.elements['overwrite'].value == 'new',
                                 callbackProgress: function(chunk, total, response) {
                                     // console.log(Math.round((chunk.id / total) * 100));
                                     if (chunk.last) {
@@ -1043,7 +1093,7 @@
                                 var tasks = [];
                                 for (var i = 0; i < files.length; i++) {
                                     var f = files[i];
-                                    if (stv.utils.endsWithIgnoreCase(f.name, '.sif')) {
+                                    if (stv.utils.endsWithIgnoreCase(f.name, '.sif') && f.bioformat == '') {
                                         tasks.push(me._createSetBioformatTask(f, 'SIMPLE_INTERACTION_FILE'));
                                     }
                                 }
@@ -1056,10 +1106,14 @@
                         if (err) {
                             console.log(err);
                         } else {
-                            console.log('Import done')
+                            console.log('Import done');
+                            me.$.importPathwayPanel.hide();
+                        }
+                        if (me.lastFile != null) {
+                            me._selectFile(me.lastFile);
                         }
                         me.fire('need-refresh');
-                        // me.set('loading', false);
+                        me.set('loading', false);
                     });
                 }
             },
@@ -1078,6 +1132,7 @@
                             prefixName + '.nvs'
                         ]
                         SteviaManager.downloadFolderFiles(parentId, '+(' + fileNames.join('|') + ')');
+                        this.$.exportPathwayPanel.hide();
                     }
                 }
 
@@ -1090,6 +1145,44 @@
                     return '';
                 }
             },
+
+            /* editionbar Handlers*/
+            handleVertexEditionBar: function(e) {
+                var dp = e.detail.displayProperty;
+                var v = e.detail.value;
+                if (!isNaN(v)) {
+                    v = parseFloat(v);
+                }
+                this._setSelectedVerticesDisplayAttr(dp, v);
+            },
+            handleEdgeEditionBar: function(e) {
+                var dp = e.detail.displayProperty;
+                var v = e.detail.value;
+                if (!isNaN(v)) {
+                    v = parseFloat(v);
+                }
+                this._setSelectedEdgesDisplayAttr(dp, v);
+            },
+            _setSelectedVerticesDisplayAttr: function(displayProperty, value) {
+                for (var i = 0, li = this.$.networkViewer.selectedVertices.length; i < li; i++) {
+                    var vertex = this.$.networkViewer.selectedVertices[i];
+                    if (vertex) {
+                        vertex.attributes[displayProperty] = value;
+                    }
+                }
+                this.updateNodeAttributes();
+            },
+            _setSelectedEdgesDisplayAttr: function(displayProperty, value) {
+                for (var i = 0, li = this.$.networkViewer.selectedEdges.length; i < li; i++) {
+                    var edge = this.$.networkViewer.selectedEdges[i];
+                    if (edge) {
+                        edge.attributes[displayProperty] = value;
+                    }
+                }
+                this.updateEdgeAttributes();
+            },
+            /** Layout Handlers **/
+
             handleLogin: function() {
                 if (Cookies('bioinfo_user').indexOf("anonymous___") != -1) {
                     this.setMenu('home');
