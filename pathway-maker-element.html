@@ -90,7 +90,7 @@
         #right {
             position: relative;
             box-sizing: border-box;
-            width: calc(100% - 300px);
+            width: calc(100% - 350px);
             height: 100%;
             margin: 0 0 0 10px;
             background-color: #fff;
@@ -113,7 +113,7 @@
         #left {
             position: relative;
             box-sizing: border-box;
-            width: 300px;
+            width: 350px;
             height: 100%;
             @apply(--layout-vertical);
             background-color: #fff;
@@ -166,7 +166,7 @@
 
         <div id="main" class="content" menu-option="home">
             <div id="left">
-                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" on-filedelete="handleFileDelete" bioformats="{{bioformats}}" mode="file" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}" hide-file-column hide-upload-btn>
+                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" on-openfolder="handleOpenFolder" on-filedelete="handleFileDelete" bioformats="{{bioformats}}" mode="file" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}" hide-file-column hide-upload-btn>
                     <!-- <div class="custom-button button stv-btn stv-btn-shdw" file-ext="sif" on-click="handleSavePathway">
                         <i class="fa fa-cloud-upload"></i>
                     </div> -->
@@ -394,16 +394,14 @@
                     value: [{
                         title: 'Name',
                         name: 'pwname',
-                        width: 150,
+                        width: 155,
                         icon: 'fa-file-o',
                         formula: function(f) {
                             if (f.type == 'FOLDER') {
-                                return '';
+                                return f.name;
                             } else {
-                                var split = f.name.split('-');
-                                if (split.length > 1) {
-                                    return split[1].substr(0, split[1].length - 4);
-                                    // return split[1];
+                                if (f._pathwayname != null) {
+                                    return f._pathwayname;
                                 } else {
                                     return '';
                                 }
@@ -412,14 +410,21 @@
                     }, {
                         title: 'Id',
                         name: 'pwid',
-                        width: 100,
+                        width: 90,
                         formula: function(f) {
                             if (f.type == 'FOLDER') {
                                 return '';
                             } else {
-                                var split = f.name.split('-');
-                                return split[0];
+                                return f.name.substr(0, f.name.length - 4);
                             }
+                        }
+                    }, {
+                        title: 'Date',
+                        width: 50,
+                        name: 'updatedAt',
+                        formula: function(file) {
+                            var date = new Date(Date.parse(file.updatedAt));
+                            return date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear().toString().substr(2, 2);
                         }
                     }]
                 }
@@ -566,6 +571,40 @@
                     }
                 }
             },
+            handleOpenFolder: function(e) {
+                var me = this;
+                var files = e.detail.files;
+                var filteredFiles = e.detail.filteredFiles;
+                var tasks = {};
+                var sifFileMap = {};
+                for (var i = 0; i < files.length; i++) {
+                    var f = files[i];
+                    if (stv.utils.endsWithIgnoreCase(f.name, '.info')) {
+                        tasks[f._id] = this._createDownloadTask(f);
+                    }
+                }
+                for (var i = 0; i < filteredFiles.length; i++) {
+                    var f = filteredFiles[i];
+                    if (stv.utils.endsWithIgnoreCase(f.name, '.sif')) {
+                        sifFileMap[f.name] = f;
+                    }
+                }
+                async.parallel(tasks, function(err, results) {
+                    for (var fid in results) {
+                        var fileContent = results[fid];
+                        var lines = fileContent.split('\n');
+                        var infoLine = lines[1];
+                        var fields = infoLine.split('\t');
+                        pwId = fields[0];
+                        pwName = fields[1];
+                        var f = sifFileMap[pwId + '.sif'];
+                        if (f != null) {
+                            f._pathwayname = pwName;
+                        }
+                    }
+                    me.$.fileBrowserLeft.refreshFolderList();
+                });
+            },
             _selectFile: function(file) {
                 var me = this;
                 if (stv.utils.endsWithIgnoreCase(file.name, '.sif')) {
@@ -591,6 +630,9 @@
                         }
                         if (f.name == prefixName + '.nvs') {
                             nvsFile = f;
+                        }
+                        if (f.name == prefixName + '.info') {
+                            infoFile = f;
                         }
                     }
                     var tasks = {
@@ -746,6 +788,9 @@
                         if (f.name == prefixName + '.nvs') {
                             nvsFile = f;
                         }
+                        if (f.name == prefixName + '.info') {
+                            infoFile = f;
+                        }
                     }
                     var tasks = {};
                     if (nattFile != null) {
@@ -759,6 +804,9 @@
                     }
                     if (nvsFile != null) {
                         tasks['nvs'] = this._createDeleteTask(nvsFile);
+                    }
+                    if (infoFile != null) {
+                        tasks['info'] = this._createDeleteTask(infoFile);
                     }
                     async.parallel(tasks, function(err, results) {
                         if (err) {
@@ -809,6 +857,9 @@
                         if (f.name == prefixName + '.nvs') {
                             nvsFile = f;
                         }
+                        if (f.name == prefixName + '.info') {
+                            infoFile = f;
+                        }
                     }
                     var tasks = {};
                     if (file != null) {
@@ -826,6 +877,7 @@
                     if (nvsFile != null) {
                         tasks['nvs'] = this._createSaveTask(nvsFile, this.$.networkViewer.exportVisualSettings());
                     }
+                    //TODO? update info file
                     async.parallel(tasks, function(err, results) {
                         if (err) {
                             console.log(err);
@@ -865,7 +917,9 @@
                     this.set('loading', true);
                     var pwFieldId = this.$.pathwayIdField.value;
                     var pwFieldName = this.$.pathwayNameField.value;
-                    var fileName = pwFieldId + '-' + pwFieldName;
+                    var fileName = pwFieldId;
+                    var infoContent = 'id\tname\n';
+                    infoContent += pwFieldId + '\t' + pwFieldName + '\n';
 
                     SteviaManager.getFileByPath(me.$.fileBrowserLeft.folder.path + '/' + fileName + '.sif', function(file) {
                         if (file != null) {
@@ -885,12 +939,14 @@
                                 me._createUplaodTask(fileName + '.eatt', me.$.networkViewer.exportEdgeAttributes()),
                                 me._createUplaodTask(fileName + '.nbg', me.$.networkViewer.exportBackground()),
                                 me._createUplaodTask(fileName + '.nvs', me.$.networkViewer.exportVisualSettings()),
+                                me._createUplaodTask(fileName + '.info', infoContent)
                             ], function(err, res) {
                                 var sifFile = res[0];
                                 var nattFile = res[1];
                                 var eattFile = res[2];
                                 var nbgFile = res[3];
                                 var nvsFile = res[4];
+                                var infoFile = res[5];
                                 if (sifFile != null) {
                                     // var attr = {
                                     //     name: me.$.pathwayNameField.value,
@@ -1120,7 +1176,7 @@
             handleExportPathway: function(e) {
                 var parentId = this.$.fileBrowserLeft.folder._id;
                 if (this.$.exportForm.elements['export'].value == 'directory') {
-                    SteviaManager.downloadFolderFiles(parentId, '+(*.sif|*.natt|*.eatt|*.nbg|*.nvs)');
+                    SteviaManager.downloadFolderFiles(parentId, '+(*.sif|*.natt|*.eatt|*.nbg|*.nvs|*.info)');
                 } else {
                     if (this.lastFile != null) {
                         var prefixName = this.lastFile.name.substr(0, this.lastFile.name.length - 4);
@@ -1129,7 +1185,8 @@
                             prefixName + '.natt',
                             prefixName + '.eatt',
                             prefixName + '.nbg',
-                            prefixName + '.nvs'
+                            prefixName + '.nvs',
+                            prefixName + '.info'
                         ]
                         SteviaManager.downloadFolderFiles(parentId, '+(' + fileNames.join('|') + ')');
                         this.$.exportPathwayPanel.hide();
@@ -1139,8 +1196,7 @@
             },
             processName: function(file) {
                 if (file != null) {
-                    var split = file.name.split('-');
-                    return split[1].substr(0, split[1].length - 4) + '  ( ' + split[0] + ' )';
+                    return file.name.substr(0, file.name.length - 4) + '  ( ' + file.name + ' )';
                 } else {
                     return '';
                 }
