@@ -49,7 +49,7 @@
         .content {
             position: absolute;
             width: 100%;
-            top: 30px;
+            top: 50px;
         }
 
         #fileBrowserPanel {
@@ -121,14 +121,14 @@
 
         network-viewer {
             box-sizing: border-box;
-            height: calc(100vh - 52px);
+            height: calc(100vh - 82px);
             box-shadow: 0px 0px 2px 1px rgba(0, 0, 0, 0.2);
             border: 1px solid #ccc;
         }
 
         #fileBrowserLeft {
             box-sizing: border-box;
-            height: calc(100vh - 52px);
+            height: calc(100vh - 82px);
             box-shadow: 0px 0px 2px 1px rgba(0, 0, 0, 0.2);
             border: 1px solid #ccc;
         }
@@ -166,14 +166,14 @@
 
         <div id="main" class="content" menu-option="home">
             <div id="left">
-                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" on-openfolder="handleOpenFolder" on-filedelete="handleFileDelete" bioformats="{{bioformats}}" mode="file" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}" hide-file-column hide-upload-btn>
+                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" on-openfolder="handleOpenFolder" on-filedelete="handleFileDelete" bioformats="{{bioformats}}" mode="file" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}" hide-file-column hide-upload-btn hide-download-btn>
                     <!-- <div class="custom-button button stv-btn stv-btn-shdw" file-ext="sif" on-click="handleSavePathway">
                         <i class="fa fa-cloud-upload"></i>
                     </div> -->
                 </stv-file-browser>
             </div>
             <div id="right">
-                <network-viewer hide-external id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver" on-update-row="handleUpdateRow" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge" on-vertexeditionbar="handleVertexEditionBar" on-edgeeditionbar="handleEdgeEditionBar">
+                <network-viewer hide-external hide-node-render hide-edge-render id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver" on-update-row="handleUpdateRow" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge" on-vertexeditionbar="handleVertexEditionBar" on-edgeeditionbar="handleEdgeEditionBar">
                 </network-viewer>
                 <stv-dropdown id="nodeDropdown">
                     <ul data-menu>
@@ -287,9 +287,9 @@
             </stv-panel>
         </div>
 
-        <stv-header id="stvHeader" small selected-option="{{selectedOption}}" user-data="{{userData}}" on-login="handleLogin" on-logout="handleLogout">
+        <stv-header id="stvHeader"  small-options selected-option="{{selectedOption}}" user-data="{{userData}}" on-login="handleLogin" on-logout="handleLogout">
             <div class="icon">
-                <img src="images/Leaf_icon_03.svg" style="height: 27px;margin: 8px 3px 0 0;">
+                <img src="images/Leaf_icon_03.svg" style="height: 45px;margin: 8px 3px 0 0;">
             </div>
             <div class="title horizontal layout center" style="margin-left:15px;">
                 Pathway<span style="font-weight:normal;">Maker</span>
@@ -298,33 +298,42 @@
                 1.0
             </span>
 
-            <div id="menu" class="menu horizontal layout center flex">
-                <div title="" style="margin-left:10px;width:30px;">
-                    <span hidden$="{{!loading}}" class="option-text"><i class="fa fa-circle-o-notch fa-spin"></i></span>
+            <div id="menu" class="menu vertical layout flex">
+                <div class="horizontal layout center flex" style="padding-top:2px;">
+                    <div title="" style="margin-left:15px;width:30px;">
+                        <span hidden$="{{!loading}}" class="option-text"><i class="fa fa-circle-o-notch fa-spin"></i></span>
+                    </div>
+                    <div title="Last loaded pathway" style="font-weight:bold;font-size:16px;">
+                        <span class="option-text">{{processName(lastFile)}} </span>
+                    </div>
+                    <div style="margin-left:10px;"></div>
+
+                    <div title="" class="option" hidden$="{{isNull(lastFile)}}" on-click="handleSavePathway">
+                        <span class="option-text"><i class="fa fa-save"></i> Save</span>
+                    </div>
+                    <div title="" class="option" hidden$="{{isNull(lastFile)}}" on-click="TODO">
+                        <span class="option-text"><i class="fa fa-pencil"></i> Edit</span>
+                    </div>
                 </div>
-                <div title="Last loaded pathway" style="font-weight:bold;">
-                    <span class="option-text">{{processName(lastFile)}} </span>
-                </div>
-                <div title="" class="option" hidden$="{{isNull(lastFile)}}" on-click="handleSavePathway">
-                    <span class="option-text"><i class="fa fa-save"></i> Save</span>
-                </div>
-                <div style="margin-left:2vw;"></div>
-                <div title="Browse my data" class="option" on-click="handleMenuPanel" login-visible data-panel="createPathwayPanel">
-                    <i class="fa fa-plus"></i>
-                    <span class="option-text">Create new...</span>
-                </div>
-                <div title="Import pathways folder" class="option" on-click="handleMenuPanel" login-visible data-panel="importPathwayPanel">
-                    <i class="fa fa-cloud-upload"></i>
-                    <span class="option-text">Import...</span>
-                </div>
-                <div title="Import pathways folder" class="option" on-click="handleMenuPanel" login-visible data-panel="exportPathwayPanel">
-                    <i class="fa fa-cloud-download"></i>
-                    <span class="option-text">Export...</span>
-                </div>
-                <div style="margin-left:20px;"></div>
-                <div title="Browse my data" class="option" on-click="handleMenuPanel" login-visible data-panel="fileBrowserPanel">
-                    <i class="fa fa-cloud"></i>
-                    <span class="option-text">My data</span>
+                <div class="horizontal layout center flex" style="padding-bottom:2px;">
+                    <div style="margin-left:2vw;"></div>
+                    <div title="Browse my data" class="option" on-click="handleMenuPanel" login-visible data-panel="createPathwayPanel">
+                        <i class="fa fa-plus"></i>
+                        <span class="option-text">Create new...</span>
+                    </div>
+                    <div title="Import pathways folder" class="option" on-click="handleMenuPanel" login-visible data-panel="importPathwayPanel">
+                        <i class="fa fa-cloud-upload"></i>
+                        <span class="option-text">Import...</span>
+                    </div>
+                    <div title="Import pathways folder" class="option" on-click="handleMenuPanel" login-visible data-panel="exportPathwayPanel">
+                        <i class="fa fa-cloud-download"></i>
+                        <span class="option-text">Export...</span>
+                    </div>
+                    <div style="margin-left:20px;"></div>
+                    <div title="Browse my data" class="option" on-click="handleMenuPanel" login-visible data-panel="fileBrowserPanel">
+                        <i class="fa fa-cloud"></i>
+                        <span class="option-text">My data</span>
+                    </div>
                 </div>
             </div>
 
@@ -614,6 +623,7 @@
                     var eattFile = null;
                     var nbgFile = null;
                     var nvsFile = null;
+                    var infoFile = null;
                     for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
                         var f = this.$.fileBrowserLeft.files[i];
                         if (f.name == prefixName + '.natt') {
@@ -773,6 +783,7 @@
                     var eattFile = null;
                     var nbgFile = null;
                     var nvsFile = null;
+                    var infoFile = null;
                     var prefixName = file.name.substr(0, file.name.length - 4);
                     for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
                         var f = this.$.fileBrowserLeft.files[i];
@@ -842,6 +853,7 @@
                     var eattFile = null;
                     var nbgFile = null;
                     var nvsFile = null;
+                    var infoFile = null;
                     var prefixName = file.name.substr(0, file.name.length - 4);
                     for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
                         var f = this.$.fileBrowserLeft.files[i];
