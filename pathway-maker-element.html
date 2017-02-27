@@ -166,7 +166,8 @@
 
         <div id="main" class="content" menu-option="home">
             <div id="left">
-                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" on-openfolder="handleOpenFolder" on-filedelete="handleFileDelete" bioformats="{{bioformats}}" mode="file" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}" hide-file-column hide-upload-btn hide-download-btn>
+                <stv-file-browser id="fileBrowserLeft" class="container flex" columns="{{fileColumns}}" hide-tree on-fileclick="handleFileSelect" on-openfolder="handleOpenFolder" on-filedelete="handleFileDelete" bioformats="{{bioformats}}" mode="file" search-by-type="{{browserFilterTypes}}" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}" hide-file-column hide-upload-btn hide-download-btn>
+                    <!-- hide-filter-btns -->
                     <!-- <div class="custom-button button stv-btn stv-btn-shdw" file-ext="sif" on-click="handleSavePathway">
                         <i class="fa fa-cloud-upload"></i>
                     </div> -->
@@ -192,13 +193,13 @@
             </div>
         </div>
         <div class="content" menu-option="home">
-            <stv-panel id="fileBrowserPanel" hidden collapsible movable closable expandible resizable on-hidden="handlePanelHidden">
+            <!-- <stv-panel id="fileBrowserPanel" hidden collapsible movable closable expandible resizable on-hidden="handlePanelHidden">
                 <div class="header">
                     <i class="fa fa-cloud"></i>&nbsp; Browse my data
                 </div>
                 <stv-file-browser id="fileBrowser" class="container flex" on-fileselect="off" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}">
                 </stv-file-browser>
-            </stv-panel>
+            </stv-panel> -->
 
             <stv-panel id="createPathwayPanel" hidden fixed modal on-hidden="handlePanelHidden">
                 <div class="header">
@@ -287,7 +288,7 @@
             </stv-panel>
         </div>
 
-        <stv-header id="stvHeader"  small-options selected-option="{{selectedOption}}" user-data="{{userData}}" on-login="handleLogin" on-logout="handleLogout">
+        <stv-header id="stvHeader" small-options selected-option="{{selectedOption}}" user-data="{{userData}}" on-login="handleLogin" on-logout="handleLogout">
             <div class="icon">
                 <img src="images/Leaf_icon_03.svg" style="height: 45px;margin: 8px 3px 0 0;">
             </div>
@@ -303,20 +304,19 @@
                     <div title="" style="margin-left:15px;width:30px;">
                         <span hidden$="{{!loading}}" class="option-text"><i class="fa fa-circle-o-notch fa-spin"></i></span>
                     </div>
-                    <div title="Last loaded pathway" style="font-weight:bold;font-size:16px;">
-                        <span class="option-text">{{processName(lastFile)}} </span>
-                    </div>
-                    <div style="margin-left:10px;"></div>
-
                     <div title="" class="option" hidden$="{{isNull(lastFile)}}" on-click="handleSavePathway">
                         <span class="option-text"><i class="fa fa-save"></i> Save</span>
                     </div>
                     <div title="" class="option" hidden$="{{isNull(lastFile)}}" on-click="TODO">
-                        <span class="option-text"><i class="fa fa-pencil"></i> Edit</span>
+                    <span class="option-text"><i class="fa fa-pencil"></i> Edit</span>
+                </div>
+                    <div style="margin-left:10px;"></div>
+                    <div title="Last loaded pathway" style="font-weight:bold;font-size:16px;">
+                        <span class="option-text">{{processName(lastFile)}} </span>
                     </div>
                 </div>
                 <div class="horizontal layout center flex" style="padding-bottom:2px;">
-                    <div style="margin-left:2vw;"></div>
+                    <div style="margin-left:15px;width:30px;"></div>
                     <div title="Browse my data" class="option" on-click="handleMenuPanel" login-visible data-panel="createPathwayPanel">
                         <i class="fa fa-plus"></i>
                         <span class="option-text">Create new...</span>
@@ -330,10 +330,10 @@
                         <span class="option-text">Export...</span>
                     </div>
                     <div style="margin-left:20px;"></div>
-                    <div title="Browse my data" class="option" on-click="handleMenuPanel" login-visible data-panel="fileBrowserPanel">
+                    <!-- <div title="Browse my data" class="option" on-click="handleMenuPanel" login-visible data-panel="fileBrowserPanel">
                         <i class="fa fa-cloud"></i>
                         <span class="option-text">My data</span>
-                    </div>
+                    </div> -->
                 </div>
             </div>
 
@@ -398,6 +398,10 @@
                     type: Boolean,
                     value: false
                 },
+                browserFilterTypes: {
+                    type: Array,
+                    value: ['file', 'folder']
+                },
                 fileColumns: {
                     type: Array,
                     value: [{
@@ -405,6 +409,7 @@
                         name: 'pwname',
                         width: 155,
                         icon: 'fa-file-o',
+                        enableSearch: true,
                         formula: function(f) {
                             if (f.type == 'FOLDER') {
                                 return f.name;
@@ -420,6 +425,7 @@
                         title: 'Id',
                         name: 'pwid',
                         width: 90,
+                        enableSearch: true,
                         formula: function(f) {
                             if (f.type == 'FOLDER') {
                                 return '';
@@ -1268,7 +1274,7 @@
                 this.checkShowMenuOnLogin();
             },
             handleLogout: function() {
-                this.setMenu('home');
+                this.setMenu('login');
                 this.checkShowMenuOnLogin();
                 this.set('lastFile', null);
                 this.set('lastFileChecksum', null);
