@@ -178,7 +178,7 @@
                 </stv-file-browser>
             </div>
             <div id="right">
-                <network-viewer hide-external hide-node-render hide-edge-render id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver" on-update-row="handleUpdateRow" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge" on-vertexeditionbar="handleVertexEditionBar" on-edgeeditionbar="handleEdgeEditionBar">
+                <network-viewer hide-external hide-node-render hide-edge-render id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver" on-update-row="handleUpdateAttr" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge" on-vertexeditionbar="handleVertexEditionBar" on-edgeeditionbar="handleEdgeEditionBar" on-importnodeattr="handleUpdateAttr" on-importedgeattr="handleUpdateAttr">
                 </network-viewer>
                 <stv-dropdown id="nodeDropdown">
                     <ul data-menu>
@@ -479,6 +479,8 @@
                 var me = this;
                 this.checkShowMenuOnLogin();
                 this.createColumns();
+                this.updateNodeAttributes();
+                this.updateEdgeAttributes();
             },
             handleRightClickVertex: function(e) {
                 this.$.edgeDropdown.hideMenu();
@@ -539,6 +541,8 @@
                 this.set('lastFileChecksum', null);
                 this.set('infoData', []);
                 this.createColumns();
+                this.updateNodeAttributes();
+                this.updateEdgeAttributes();
             },
             createColumns: function() {
                 var vAttributes = [
@@ -745,7 +749,7 @@
                     CryptoJS.MD5(nbg).toString() +
                     CryptoJS.MD5(nvs).toString();
             },
-            handleUpdateRow: function(e) {
+            handleUpdateAttr: function(e) {
                 this.updateNodeAttributes();
                 this.updateEdgeAttributes();
             },
