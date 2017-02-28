@@ -178,7 +178,7 @@
                 </stv-file-browser>
             </div>
             <div id="right">
-                <network-viewer hide-external hide-node-render hide-edge-render id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleStartOver" on-update-row="handleUpdateAttr" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge" on-vertexeditionbar="handleVertexEditionBar" on-edgeeditionbar="handleEdgeEditionBar" on-importnodeattr="handleUpdateAttr" on-importedgeattr="handleUpdateAttr">
+                <network-viewer hide-external hide-node-render hide-edge-render id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleLoad" on-graphload="handleLoad" on-update-row="handleUpdateAttr" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge" on-vertexeditionbar="handleVertexEditionBar" on-edgeeditionbar="handleEdgeEditionBar" on-importnodeattr="handleUpdateAttr" on-importedgeattr="handleUpdateAttr">
                 </network-viewer>
                 <stv-dropdown id="nodeDropdown">
                     <ul data-menu>
@@ -536,7 +536,7 @@
                     this.updateEdgeAttributes();
                 }
             },
-            handleStartOver: function(e) {
+            handleLoad: function(e) {
                 this.set('lastFile', null);
                 this.set('lastFileChecksum', null);
                 this.set('infoData', []);
@@ -643,14 +643,16 @@
                 async.parallel(tasks, function(err, results) {
                     for (var fid in results) {
                         var fileContent = results[fid];
-                        var lines = fileContent.split('\n');
-                        var oneLine = lines[1].split('\t');
-                        var twoLine = lines[2].split('\t');
-                        pwId = oneLine[1];
-                        pwName = twoLine[1];
-                        var f = sifFileMap[pwId + '.sif'];
-                        if (f != null) {
-                            f._pathwayname = pwName;
+                        if(fileContent != ""){
+                            var lines = fileContent.split('\n');
+                            var oneLine = lines[1].split('\t');
+                            var twoLine = lines[2].split('\t');
+                            pwId = oneLine[1];
+                            pwName = twoLine[1];
+                            var f = sifFileMap[pwId + '.sif'];
+                            if (f != null) {
+                                f._pathwayname = pwName;
+                            }
                         }
                     }
                     me.$.fileBrowserLeft.refreshFolderList();
