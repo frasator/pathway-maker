@@ -178,7 +178,7 @@
                 </stv-file-browser>
             </div>
             <div id="right">
-                <network-viewer hide-external hide-node-render hide-edge-render id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleLoad" on-graphload="handleLoad" on-update-row="handleUpdateAttr" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge" on-vertexeditionbar="handleVertexEditionBar" on-edgeeditionbar="handleEdgeEditionBar" on-importnodeattr="handleUpdateAttr" on-importedgeattr="handleUpdateAttr">
+                <network-viewer hide-external hide-node-render hide-edge-render id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleLoad" on-update-row="handleUpdateAttr" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge" on-vertexeditionbar="handleVertexEditionBar" on-edgeeditionbar="handleEdgeEditionBar" on-importnodeattr="handleUpdateAttr" on-importedgeattr="handleUpdateAttr">
                 </network-viewer>
                 <stv-dropdown id="nodeDropdown">
                     <ul data-menu>
@@ -643,7 +643,7 @@
                 async.parallel(tasks, function(err, results) {
                     for (var fid in results) {
                         var fileContent = results[fid];
-                        if(fileContent != ""){
+                        if (fileContent != "") {
                             var lines = fileContent.split('\n');
                             var oneLine = lines[1].split('\t');
                             var twoLine = lines[2].split('\t');
@@ -698,7 +698,6 @@
                         info: this._createDownloadTask(infoFile)
                     };
                     async.parallel(tasks, function(err, results) {
-                        me.$.networkViewer.startOver();
                         var sif = results.sif;
                         var natt = results.natt;
                         var eatt = results.eatt;
@@ -708,7 +707,6 @@
                         if (sif) {
                             me.$.networkViewer.loadSif(sif);
                             me.$.networkViewer.lastLoadedFileName = file.name;
-                            me.$.networkViewer.centerNetwork();
                         }
                         if (natt) {
                             me.$.networkViewer.loadNodeAttributes(natt, natt.charAt(0) != '#');
@@ -731,6 +729,11 @@
                             var infoData = me.$.tableInfo.parseDelimitedSeparatedValues(info, me.infoColumns);
                             infoData.shift();
                             me.set('infoData', infoData);
+                        }
+                        if (sif) {
+                            me.$.networkViewer.centerNetwork();
+                            me.updateNodeAttributes();
+                            me.updateEdgeAttributes();
                         }
                         me.set('loading', false);
 
@@ -761,9 +764,6 @@
                     var col = this.$.networkViewer.vertexColumns[i];
                     ncolmap[col.name] = col;
                 }
-                // if (ncolmap['label'] != null) {
-                //     this.$.networkViewer.setVertexDefaultLabelAttribute('label');
-                // }
                 if (ncolmap['labelSize'] != null) {
                     this.$.networkViewer.$.nodeRender.applyDirect('labelSize', 'labelSize');
                 }
@@ -784,6 +784,10 @@
                 }
                 if (ncolmap['strokeSize'] != null) {
                     this.$.networkViewer.$.nodeRender.applyDirect('strokeSize', 'strokeSize');
+                }
+
+                if (ncolmap['label'] != null) {
+                    this.$.networkViewer.setVertexDefaultLabelAttribute('label');
                 }
 
                 // me.$.networkViewer.$.nodeRender.applyDirect('exp', 'strokeColor');
