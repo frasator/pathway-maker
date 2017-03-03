@@ -82,6 +82,7 @@
             box-sizing: border-box;
             position: relative;
             width: 100%;
+            height: calc(100% - 50px);
             @apply(--layout-horizontal);
             background-color: #eee;
             padding: 10px 8px;
@@ -90,7 +91,7 @@
         #right {
             position: relative;
             box-sizing: border-box;
-            width: calc(100% - 350px);
+            width: calc(100% - 360px);
             height: 100%;
             margin: 0 0 0 10px;
             background-color: #fff;
@@ -121,14 +122,14 @@
 
         network-viewer {
             box-sizing: border-box;
-            height: calc(100vh - 82px);
+            height: 100%;
             box-shadow: 0px 0px 2px 1px rgba(0, 0, 0, 0.2);
             border: 1px solid #ccc;
         }
 
         #fileBrowserLeft {
             box-sizing: border-box;
-            height: calc(100vh - 82px);
+            height: 100%;
             box-shadow: 0px 0px 2px 1px rgba(0, 0, 0, 0.2);
             border: 1px solid #ccc;
         }
@@ -197,13 +198,13 @@
             </div>
         </div>
         <div class="content" menu-option="home">
-            <!-- <stv-panel id="fileBrowserPanel" hidden collapsible movable closable expandible resizable on-hidden="handlePanelHidden">
+            <stv-panel id="fileBrowserPanel" hidden collapsible movable closable expandible resizable on-hidden="handlePanelHidden">
                 <div class="header">
                     <i class="fa fa-cloud"></i>&nbsp; Browse my data
                 </div>
                 <stv-file-browser id="fileBrowser" class="container flex" on-fileselect="off" on-need-refresh="handleUserNeedRefresh" user-data="{{userData}}">
                 </stv-file-browser>
-            </stv-panel> -->
+            </stv-panel>
 
             <stv-panel id="createPathwayPanel" hidden fixed modal on-hidden="handlePanelHidden">
                 <div class="header">
@@ -294,11 +295,23 @@
                 <div class="header">
                     <i class="fa fa-pencil"></i>&nbsp; Edit pathway information
                 </div>
-                <stv-table id="tableInfo" class="container" enable-edit columns="{{infoColumns}}" data="{{infoData}}" style="width:400px;height:400px"></stv-table>
+                <!-- <stv-table hidden id="tableInfo" class="container" enable-edit columns="{{infoColumns}}" data="{{infoData}}" style="width:400px;height:400px"></stv-table> -->
+                <form id="editForm" class="container flex" style="padding:30px 30px;width:300px;">
+                    <label class="stv">Pathway name:</label>
+                    <div>
+                        <input id="pathwayEditNameField" class="stv" type="text" />
+                    </div>
+                    <br>
+                    <label class="stv">Pathway id:</label>
+                    <div>
+                        <input id="pathwayEditIdField" class="stv" type="text" />
+                    </div>
+                    <br>
+                </form>
 
                 <div class="footer horizontal layout center end-justified flex">
-                    <div class="stv-btn stv-red stv-btn-shdw" style="width:100px;margin:5px;" on-click="">Cancel</div>
-                    <div class="stv-btn stv-blue stv-btn-shdw" style="width:100px;" on-click="">OK</div>
+                    <div class="stv-btn stv-red stv-btn-shdw" style="width:100px;margin:5px;" on-click="handleCloseEditInfo">Cancel</div>
+                    <div class="stv-btn stv-blue stv-btn-shdw" style="width:100px;" on-click="handleSaveInfo">Save</div>
                 </div>
             </stv-panel>
         </div>
@@ -322,9 +335,9 @@
                     <div title="" class="option" hidden$="{{isNull(lastFile)}}" on-click="handleSavePathway">
                         <span class="option-text"><i class="fa fa-save"></i> Save</span>
                     </div>
-                    <!-- <div title="" class="option" hidden$="{{isNull(lastFile)}}" on-click="handleMenuPanel" data-panel="editPathwayInfoPanel">
+                    <div title="" class="option" hidden$="{{isNull(lastFile)}}" on-click="handleMenuPanel" data-panel="editPathwayInfoPanel">
                         <span class="option-text"><i class="fa fa-pencil"></i> Edit</span>
-                    </div> -->
+                    </div>
                     <div style="margin-left:10px;"></div>
                     <div title="Last loaded pathway" style="font-weight:bold;font-size:16px;">
                         <span class="option-text">{{processName(lastFile)}} </span>
@@ -457,22 +470,6 @@
                             return date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear().toString().substr(2, 2);
                         }
                     }]
-                },
-                infoColumns: {
-                    type: Array,
-                    value: [{
-                        title: 'Key',
-                        width: 150,
-                        name: 'key'
-                    }, {
-                        title: 'Value',
-                        width: 250,
-                        name: 'value'
-                    }]
-                },
-                infoData: {
-                    type: Array,
-                    value: []
                 }
             },
             ready: function() {
@@ -481,6 +478,12 @@
                 this.createColumns();
                 this.updateNodeAttributes();
                 this.updateEdgeAttributes();
+            },
+            clear: function() {
+                this.set('lastFile', null);
+                this.set('lastFileChecksum', null);
+                this.$.pathwayEditIdField.value = "";
+                this.$.pathwayEditNameField.value = "";
             },
             handleRightClickVertex: function(e) {
                 this.$.edgeDropdown.hideMenu();
@@ -537,9 +540,7 @@
                 }
             },
             handleLoad: function(e) {
-                this.set('lastFile', null);
-                this.set('lastFileChecksum', null);
-                this.set('infoData', []);
+                this.clear();
                 this.createColumns();
                 this.updateNodeAttributes();
                 this.updateEdgeAttributes();
@@ -662,89 +663,136 @@
                 var me = this;
                 if (stv.utils.endsWithIgnoreCase(file.name, '.sif')) {
                     this.set('loading', true);
-                    var prefixName = file.name.substr(0, file.name.length - 4);
-                    var nattFile = null;
-                    var eattFile = null;
-                    var nbgFile = null;
-                    var nvsFile = null;
-                    var infoFile = null;
-                    for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
-                        var f = this.$.fileBrowserLeft.files[i];
-                        if (f.name == prefixName + '.natt') {
-                            nattFile = f;
-                        }
-                        if (f.name == prefixName + '.eatt') {
-                            eattFile = f;
-                        }
-                        if (f.name == prefixName + '.eatt') {
-                            eattFile = f;
-                        }
-                        if (f.name == prefixName + '.nbg') {
-                            nbgFile = f;
-                        }
-                        if (f.name == prefixName + '.nvs') {
-                            nvsFile = f;
-                        }
-                        if (f.name == prefixName + '.info') {
-                            infoFile = f;
-                        }
-                    }
+                    var rf = this.getRelatedFiles(file);
                     var tasks = {
                         sif: this._createDownloadTask(file),
-                        natt: this._createDownloadTask(nattFile),
-                        eatt: this._createDownloadTask(eattFile),
-                        nbg: this._createDownloadTask(nbgFile),
-                        nvs: this._createDownloadTask(nvsFile),
-                        info: this._createDownloadTask(infoFile)
+                        natt: this._createDownloadTask(rf.nattFile),
+                        eatt: this._createDownloadTask(rf.eattFile),
+                        nbg: this._createDownloadTask(rf.nbgFile),
+                        nvs: this._createDownloadTask(rf.nvsFile),
+                        info: this._createDownloadTask(rf.infoFile)
                     };
-                    async.parallel(tasks, function(err, results) {
-                        var sif = results.sif;
-                        var natt = results.natt;
-                        var eatt = results.eatt;
-                        var nbg = results.nbg;
-                        var nvs = results.nvs;
-                        var info = results.info;
-                        if (sif) {
-                            me.$.networkViewer.loadSif(sif);
+                    async.parallel(tasks, function(err, res) {
+                        if (res.sif) {
+                            me.$.networkViewer.loadSif(res.sif);
                             me.$.networkViewer.lastLoadedFileName = file.name;
                         }
-                        if (natt) {
-                            me.$.networkViewer.loadNodeAttributes(natt, natt.charAt(0) != '#');
+                        if (res.natt) {
+                            me.$.networkViewer.loadNodeAttributes(res.natt, res.natt.charAt(0) != '#');
                             me.updateNodeAttributes();
                         } else {
                             me.$.networkViewer.setLayout('Force directed');
                         }
-                        if (eatt) {
-                            me.$.networkViewer.loadEdgeAttributes(eatt, eatt.charAt(0) != '#');
+                        if (res.eatt) {
+                            me.$.networkViewer.loadEdgeAttributes(res.eatt, res.eatt.charAt(0) != '#');
                             me.updateEdgeAttributes();
                         }
-                        if (nbg) {
-                            me.$.networkViewer.loadBackground(nbg);
+                        if (res.nbg) {
+                            me.$.networkViewer.loadBackground(res.nbg);
                         }
-                        if (nvs) {
-                            me.$.networkViewer.loadVisualSettings(nvs);
+                        if (res.nvs) {
+                            me.$.networkViewer.loadVisualSettings(res.nvs);
                             me.$.networkViewer.applyVisualSets();
                         }
-                        if (info) {
-                            var infoData = me.$.tableInfo.parseDelimitedSeparatedValues(info, me.infoColumns);
-                            infoData.shift();
-                            me.set('infoData', infoData);
-                        }
-                        if (sif) {
+                        if (res.sif) {
                             me.$.networkViewer.centerNetwork();
                             me.updateNodeAttributes();
                             me.updateEdgeAttributes();
                         }
-                        me.set('loading', false);
 
+                        me.set('loading', false);
                         me.set('lastFile', file);
 
-                        me.set('lastFileChecksum', me._createChecksum(sif, natt, eatt, nbg, nvs));
+                        if (res.info) {
+                            me._setEditFields(res.info);
+                        }
+
+                        me.set('lastFileChecksum', me._createChecksum(res.sif, res.natt, res.eatt, res.nbg, res.nvs));
                     });
                 } else {
-                    me.set('lastFile', null);
-                    me.set('lastFileChecksum', null);
-                    me.set('infoData', []);
+                    me.clear();
+                }
+            },
+            handleSaveInfo: function(e) {
+                if (this.lastFile == null) {
+                    return;
+                }
+                var me = this;
+                this.set('loading', true);
+
+                var pwFieldId = this.$.pathwayEditIdField.value;
+                var pwFieldName = this.$.pathwayEditNameField.value;
+                var fileName = pwFieldId;
+
+                var newFileName = pwFieldId + '.sif';
+                var split = this.lastFile.path.split('/');
+                split.pop();
+                var newFilePath = split.join('/') + '/' + newFileName;
+
+                var rf = me.getRelatedFiles(me.lastFile);
+
+                SteviaManager.getFileByPath(newFilePath, function(res) {
+                    if (res.length > 0) {
+                        new StvDialog().alert('Pathway id already used, please choose another id.');
+                        me.set('loading', false);
+                    } else {
+                        var infoContent = 'key\tvalue\n';
+                        infoContent += 'id' + '\t' + pwFieldId + '\n';
+                        infoContent += 'name' + '\t' + pwFieldName + '\n';
+                        async.series([
+                            function(cb) {
+                                var task = me._createSaveTask(rf.infoFile, infoContent);
+                                async.parallel([task], function(err, results) {
+                                    cb();
+                                });
+                            },
+                            function(cb) {
+                                async.each(rf, function(f, renamecb) {
+                                    var ext = '.' + f.name.split('.').pop();
+                                    var newFileName = pwFieldId + ext;
+                                    var split = f.path.split('/');
+                                    split.pop();
+                                    var newFilePath = split.join('/') + '/' + newFileName;
+                                    SteviaManager.renameFile(f._id, newFileName, function() {
+                                        renamecb();
+                                    });
+                                }, function(err) {
+                                    cb();
+                                });
+                            },
+                            function(cb) {
+                                me.$.fileBrowserLeft.openFolder(me.$.fileBrowserLeft.folder._id, function() {
+                                    me.$.fileBrowserLeft.selectedFile._pathwayname = pwFieldName;
+                                    me.set('lastFile', me.$.fileBrowserLeft.selectedFile);
+                                    me.set('loading', false);
+                                    cb();
+                                });
+                            }
+                        ]);
+                    }
+                });
+            },
+            _setEditFields: function(infoContent) {
+                if (this.lastFile != null) {
+                    var lines = infoContent.split('\n');
+                    console.log(lines);
+                    var idLine = lines[1];
+                    var nameLine = lines[2];
+                    this.$.pathwayEditIdField.value = idLine.split('\t')[1];
+                    this.$.pathwayEditNameField.value = nameLine.split('\t')[1];
+                } else {
+                    this.$.pathwayEditIdField.value = "";
+                    this.$.pathwayEditNameField.value = "";
+                }
+            },
+            _resetEditFields: function() {
+                if (this.lastFile != null) {
+                    var n = this.lastFile.name
+                    this.$.pathwayEditIdField.value = n.substr(0, n.length - 4);
+                    this.$.pathwayEditNameField.value = this.lastFile._pathwayname;
+                } else {
+                    this.$.pathwayEditIdField.value = "";
+                    this.$.pathwayEditNameField.value = "";
                 }
             },
             _createChecksum: function(sif, natt, eatt, nbg, nvs) {
@@ -835,45 +883,22 @@
                 var file = e.detail.file;
                 if (!this.loading && file != null && file.bioformat == "SIMPLE_INTERACTION_FILE") {
                     this.set('loading', true);
-                    var nattFile = null;
-                    var eattFile = null;
-                    var nbgFile = null;
-                    var nvsFile = null;
-                    var infoFile = null;
-                    var prefixName = file.name.substr(0, file.name.length - 4);
-                    for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
-                        var f = this.$.fileBrowserLeft.files[i];
-                        if (f.name == prefixName + '.natt') {
-                            nattFile = f;
-                        }
-                        if (f.name == prefixName + '.eatt') {
-                            eattFile = f;
-                        }
-                        if (f.name == prefixName + '.nbg') {
-                            nbgFile = f;
-                        }
-                        if (f.name == prefixName + '.nvs') {
-                            nvsFile = f;
-                        }
-                        if (f.name == prefixName + '.info') {
-                            infoFile = f;
-                        }
-                    }
+                    var rf = this.getRelatedFiles(file);
                     var tasks = {};
-                    if (nattFile != null) {
-                        tasks['natt'] = this._createDeleteTask(nattFile);
+                    if (rf.nattFile != null) {
+                        tasks['natt'] = this._createDeleteTask(rf.nattFile);
                     }
-                    if (eattFile != null) {
-                        tasks['eatt'] = this._createDeleteTask(eattFile);
+                    if (rf.eattFile != null) {
+                        tasks['eatt'] = this._createDeleteTask(rf.eattFile);
                     }
-                    if (nbgFile != null) {
-                        tasks['nbg'] = this._createDeleteTask(nbgFile);
+                    if (rf.nbgFile != null) {
+                        tasks['nbg'] = this._createDeleteTask(rf.nbgFile);
                     }
-                    if (nvsFile != null) {
-                        tasks['nvs'] = this._createDeleteTask(nvsFile);
+                    if (rf.nvsFile != null) {
+                        tasks['nvs'] = this._createDeleteTask(rf.nvsFile);
                     }
-                    if (infoFile != null) {
-                        tasks['info'] = this._createDeleteTask(infoFile);
+                    if (rf.infoFile != null) {
+                        tasks['info'] = this._createDeleteTask(rf.infoFile);
                     }
                     async.parallel(tasks, function(err, results) {
                         if (err) {
@@ -881,9 +906,7 @@
                         } else {
                             console.log(results);
                             console.log('Delete done');
-                            me.set('lastFile', null);
-                            me.set('lastFileChecksum', null);
-                            me.set('infoData', []);
+                            me.clear();
                         }
                         me.set('loading', false);
                     });
@@ -906,50 +929,26 @@
                 var me = this;
                 if (!this.loading && file != null && stv.utils.endsWithIgnoreCase(file.name, '.sif')) {
                     this.set('loading', true);
-                    var nattFile = null;
-                    var eattFile = null;
-                    var nbgFile = null;
-                    var nvsFile = null;
-                    var infoFile = null;
-                    var prefixName = file.name.substr(0, file.name.length - 4);
-                    for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
-                        var f = this.$.fileBrowserLeft.files[i];
-                        if (f.name == prefixName + '.natt') {
-                            nattFile = f;
-                        }
-                        if (f.name == prefixName + '.eatt') {
-                            eattFile = f;
-                        }
-                        if (f.name == prefixName + '.nbg') {
-                            nbgFile = f;
-                        }
-                        if (f.name == prefixName + '.nvs') {
-                            nvsFile = f;
-                        }
-                        if (f.name == prefixName + '.info') {
-                            infoFile = f;
-                        }
-                    }
+                    var rf = this.getRelatedFiles(file);
                     var tasks = {};
                     if (file != null) {
                         tasks['sif'] = this._createSaveTask(file, this.$.networkViewer.exportGraph());
                     }
-                    if (nattFile != null) {
-                        tasks['natt'] = this._createSaveTask(nattFile, this.$.networkViewer.exportVertexAttributes());
+                    if (rf.nattFile != null) {
+                        tasks['natt'] = this._createSaveTask(rf.nattFile, this.$.networkViewer.exportVertexAttributes());
                     }
-                    if (eattFile != null) {
-                        tasks['eatt'] = this._createSaveTask(eattFile, this.$.networkViewer.exportEdgeAttributes());
+                    if (rf.eattFile != null) {
+                        tasks['eatt'] = this._createSaveTask(rf.eattFile, this.$.networkViewer.exportEdgeAttributes());
                     }
-                    if (nbgFile != null) {
-                        tasks['nbg'] = this._createSaveTask(nbgFile, this.$.networkViewer.exportBackground());
+                    if (rf.nbgFile != null) {
+                        tasks['nbg'] = this._createSaveTask(rf.nbgFile, this.$.networkViewer.exportBackground());
                     }
-                    if (nvsFile != null) {
-                        tasks['nvs'] = this._createSaveTask(nvsFile, this.$.networkViewer.exportVisualSettings());
+                    if (rf.nvsFile != null) {
+                        tasks['nvs'] = this._createSaveTask(rf.nvsFile, this.$.networkViewer.exportVisualSettings());
                     }
-                    if (infoFile != null) {
-                        tasks['info'] = this._createSaveTask(infoFile, this.$.tableInfo.getDelimitedSeparatedValues(this.$.tableInfo.data, this.infoColumns));
+                    if (rf.infoFile != null) {
+                        // tasks['info'] = this._createSaveTask(infoFile, this.$.tableInfo.getDelimitedSeparatedValues(this.$.tableInfo.data, this.infoColumns));
                     }
-                    //TODO? update info file
                     async.parallel(tasks, function(err, results) {
                         if (err) {
                             console.log(err);
@@ -994,16 +993,14 @@
                     infoContent += 'id' + '\t' + pwFieldId + '\n';
                     infoContent += 'name' + '\t' + pwFieldName + '\n';
 
-                    SteviaManager.getFileByPath(me.$.fileBrowserLeft.folder.path + '/' + fileName + '.sif', function(file) {
-                        if (file != null) {
+                    SteviaManager.getFileByPath(me.$.fileBrowserLeft.folder.path + '/' + fileName + '.sif', function(res) {
+                        if (res.length > 0) {
                             new StvDialog().alert('File already exists with that name. Please select a different name.');
                             me.set('loading', false);
                         } else {
                             if (me.$.createForm.elements['createnetwork'].value == 'empty') {
                                 me.$.networkViewer.startOver();
-                                me.set('lastFile', null);
-                                me.set('lastFileChecksum', null);
-                                me.set('infoData', []);
+                                me.clear();
                                 me.createColumns();
                             }
 
@@ -1049,6 +1046,10 @@
             },
             handleCloseImportPathway: function() {
                 this.$.importPathwayPanel.hide();
+            },
+            handleCloseEditInfo: function() {
+                this._resetEditFields();
+                this.$.editPathwayInfoPanel.hide();
             },
             _createDownloadTask: function(file) {
                 return function(cb) {
@@ -1270,7 +1271,9 @@
             },
             processName: function(file) {
                 if (file != null) {
-                    return file.name.substr(0, file.name.length - 4) + '  ( ' + file.name + ' )';
+                    // return file.name.substr(0, file.name.length - 4) + '  ( ' + file.name + ' )';
+                    return file._pathwayname + '  ( ' + file.name.substr(0, file.name.length - 4) + ' )';
+                    // return file.name.substr(0, file.name.length - 4) + '  ' + file._pathwayname + '';
                 } else {
                     return '';
                 }
@@ -1311,6 +1314,36 @@
                 }
                 this.updateEdgeAttributes();
             },
+            getRelatedFiles: function(file) {
+                var prefixName = file.name.substr(0, file.name.length - 4);
+                var nattFile, eattFile, nbgFile, nvsFile, infoFile;
+                for (var i = 0; i < this.$.fileBrowserLeft.files.length; i++) {
+                    var f = this.$.fileBrowserLeft.files[i];
+                    if (f.name == prefixName + '.natt') {
+                        nattFile = f;
+                    }
+                    if (f.name == prefixName + '.eatt') {
+                        eattFile = f;
+                    }
+                    if (f.name == prefixName + '.nbg') {
+                        nbgFile = f;
+                    }
+                    if (f.name == prefixName + '.nvs') {
+                        nvsFile = f;
+                    }
+                    if (f.name == prefixName + '.info') {
+                        infoFile = f;
+                    }
+                }
+                return {
+                    sifFile: file,
+                    nattFile: nattFile,
+                    eattFile: eattFile,
+                    nbgFile: nbgFile,
+                    nvsFile: nvsFile,
+                    infoFile: infoFile
+                };
+            },
             /** Layout Handlers **/
 
             handleLogin: function() {
@@ -1332,9 +1365,7 @@
             handleLogout: function() {
                 this.setMenu('login');
                 this.checkShowMenuOnLogin();
-                this.set('lastFile', null);
-                this.set('lastFileChecksum', null);
-                this.set('infoData', []);
+                this.clear();
                 this.$.networkViewer.startOver();
                 this.createColumns();
             },
