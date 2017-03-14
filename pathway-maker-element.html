@@ -166,6 +166,16 @@
         stv-panel {
             box-shadow: 0px 0px 6px 3px rgba(0, 0, 0, 0.30)
         }
+
+        .prop {
+            padding: 2px 5px;
+            @apply(--layout-horizontal);
+            @apply(--layout-center);
+        }
+
+        .prop>label {
+            width: 105px;
+        }
     </style>
     <template>
 
@@ -186,6 +196,42 @@
                         <li on-click="handleSetAsGene">Gene</li>
                         <li on-click="handleSetAsMetabolite">Metabolite</li>
                         <li on-click="handleSetAsFunction">Function</li>
+                        <li data-divider></li>
+                        <!-- <li data-text>Properties</li> -->
+                        <div data-nohide style="padding:5px;">
+                            <div class="prop">
+                                <label class="stv">Label:</label>
+                                <input class="stv" type="text" placeholder="Label" data-property="label" on-input="handleNodeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Label size:</label>
+                                <input class="stv" type="number" placeholder="Label size" data-property="labelSize" on-input="handleNodeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Opacity:</label>
+                                <input class="stv" type="number" min="0" max="1" step="0.1" placeholder="Opacity" data-property="opacity" on-input="handleNodeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Shape:</label>
+                                <input class="stv" type="text" placeholder="Shape" data-property="shape" on-input="handleNodeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Color:</label>
+                                <input class="stv" type="text" placeholder="Color" data-property="color" on-input="handleNodeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Stroke color:</label>
+                                <input class="stv" type="text" placeholder="Stroke color" data-property="strokeColor" on-input="handleNodeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Size:</label>
+                                <input class="stv" type="number" min="1" placeholder="Size" data-property="size" on-input="handleNodeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Stroke size:</label>
+                                <input class="stv" type="number" min="1" placeholder="Stroke size" data-property="strokeSize" on-input="handleNodeEditProperty" />
+                            </div>
+                        </div>
                     </ul>
                 </stv-dropdown>
                 <stv-dropdown id="edgeDropdown">
@@ -470,6 +516,9 @@
                             return date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear().toString().substr(2, 2);
                         }
                     }]
+                },
+                lastContextVertex: {
+                    type: Object,
                 }
             },
             ready: function() {
@@ -486,8 +535,39 @@
                 this.$.pathwayEditNameField.value = "";
             },
             handleRightClickVertex: function(e) {
+                this.lastContextVertex = this.$.networkViewer.lastContextVertex;
+                var inputs = this.$.nodeDropdown.querySelectorAll("[data-property]");
+                for (var i = 0; i < inputs.length; i++) {
+                    var iel = inputs[i];
+                    var prop = iel.dataset.property;
+                    if (this.lastContextVertex.attributes[prop] != null) {
+                        iel.value = this.lastContextVertex.attributes[prop];
+                    } else {
+                        iel.value = null;
+                    }
+                }
                 this.$.edgeDropdown.hideMenu();
                 this.$.nodeDropdown.showMenu(e.detail.e.x, e.detail.e.y);
+            },
+            handleNodeEditProperty: function(e) {
+                var vertex = this.$.networkViewer.lastContextVertex;
+                if (vertex) {
+                    var prop = e.currentTarget.dataset.property;
+                    var value = e.currentTarget.value;
+                    var reg = new RegExp('^[0-9]+$');
+                    if (reg.test(value)) {
+                        value = parseFloat(value);
+                    }
+                    if (prop == 'shape') {
+                        if (['circle', 'ellipse', 'square', 'rectangle'].indexOf(value) != -1) {
+                            vertex.attributes[prop] = value;
+                            this.updateNodeAttributes();
+                        }
+                    } else {
+                        vertex.attributes[prop] = value;
+                        this.updateNodeAttributes();
+                    }
+                }
             },
             handleRightClickEdge: function(e) {
                 this.$.nodeDropdown.hideMenu();
@@ -710,7 +790,9 @@
                         me.set('lastFileChecksum', me._createChecksum(res.sif, res.natt, res.eatt, res.nbg, res.nvs));
                     });
                 } else {
-                    me.clear();
+                    if(file.type!='FOLDER'){
+                        me.clear();
+                    }
                 }
             },
             handleSaveInfo: function(e) {
