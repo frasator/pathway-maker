@@ -189,7 +189,7 @@
                 </stv-file-browser>
             </div>
             <div id="right">
-                <network-viewer hide-external hide-node-render hide-edge-render id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleLoad" on-update-row="handleUpdateAttr" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge" on-vertexeditionbar="handleVertexEditionBar" on-edgeeditionbar="handleEdgeEditionBar" on-importnodeattr="handleUpdateAttr" on-importedgeattr="handleUpdateAttr">
+                <network-viewer hide-external hide-node-render hide-edge-render id="networkViewer" user-data="{{userData}}" on-need-refresh="handleUserNeedRefresh" on-startover="handleLoad" on-update-row="handleUpdateAttr" disable-context-menu on-rightclickvertex="handleRightClickVertex" on-rightclickedge="handleRightClickEdge" on-vertexeditionbar="handleVertexEditionBar" on-edgeeditionbar="handleEdgeEditionBar" on-importnodeattr="handleUpdateAttr" on-importedgeattr="handleUpdateAttr" on-createvertex="handleCreateVertex" on-createedge="handleCreateEdge">
                 </network-viewer>
                 <stv-dropdown id="nodeDropdown">
                     <ul data-menu>
@@ -239,6 +239,41 @@
                         <li on-click="handleSetAsActivation">Activation</li>
                         <li on-click="handleSetAsInhibition">Inhibition</li>
                         <li on-click="handleSwapEdgeDirection">Swap direction</li>
+                        <li data-divider></li>
+                        <div data-nohide style="padding:5px;">
+                            <div class="prop">
+                                <label class="stv">Label:</label>
+                                <input class="stv" type="text" placeholder="Label" data-property="label" on-input="handleEdgeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Label size:</label>
+                                <input class="stv" type="number" placeholder="Label size" data-property="labelSize" on-input="handleEdgeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Opacity:</label>
+                                <input class="stv" type="number" min="0" max="1" step="0.1" placeholder="Opacity" data-property="opacity" on-input="handleEdgeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Shaft:</label>
+                                <input class="stv" type="text" placeholder="Shaft" data-property="shaft" on-input="handleEdgeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Shape:</label>
+                                <input class="stv" type="text" placeholder="Shape" data-property="shape" on-input="handleEdgeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Bidirectional:</label>
+                                <input class="stv" type="text" placeholder="Bidirectional" data-property="bidirectional" on-input="handleEdgeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Color:</label>
+                                <input class="stv" type="text" placeholder="Color" data-property="color" on-input="handleEdgeEditProperty" />
+                            </div>
+                            <div class="prop">
+                                <label class="stv">Size:</label>
+                                <input class="stv" type="number" min="1" placeholder="Size" data-property="size" on-input="handleEdgeEditProperty" />
+                            </div>
+                        </div>
                     </ul>
                 </stv-dropdown>
             </div>
@@ -337,7 +372,7 @@
                     <div class="stv-btn stv-blue stv-btn-shdw" style="width:100px;" on-click="handleImportPathway">OK</div>
                 </div>
             </stv-panel>
-            <stv-panel id="editPathwayInfoPanel" hidden fixed on-hidden="handlePanelHidden">
+            <stv-panel id="editPathwayInfoPanel" hidden fixed modal on-hidden="handlePanelHidden">
                 <div class="header">
                     <i class="fa fa-pencil"></i>&nbsp; Edit pathway information
                 </div>
@@ -549,6 +584,33 @@
                 this.$.edgeDropdown.hideMenu();
                 this.$.nodeDropdown.showMenu(e.detail.e.x, e.detail.e.y);
             },
+            handleRightClickEdge: function(e) {
+                this.lastContextEdge = this.$.networkViewer.lastContextEdge;
+                var inputs = this.$.edgeDropdown.querySelectorAll("[data-property]");
+                for (var i = 0; i < inputs.length; i++) {
+                    var iel = inputs[i];
+                    var prop = iel.dataset.property;
+                    if (this.lastContextEdge.attributes[prop] != null) {
+                        iel.value = this.lastContextEdge.attributes[prop];
+                    } else {
+                        iel.value = null;
+                    }
+                }
+                this.$.nodeDropdown.hideMenu();
+                this.$.edgeDropdown.showMenu(e.detail.e.x, e.detail.e.y);
+            },
+            handleCreateVertex: function(e) {
+                var v = e.detail.vertex;
+                if (v.attributes.label == '' || v.attributes.label == null) {
+                    v.attributes.label = v.attributes.id;
+                }
+            },
+            handleCreateEdge: function(e) {
+                var e = e.detail.edge;
+                if (e.attributes.label == '' || e.attributes.label == null) {
+                    e.attributes.label = e.attributes.id;
+                }
+            },
             handleNodeEditProperty: function(e) {
                 var vertex = this.$.networkViewer.lastContextVertex;
                 if (vertex) {
@@ -558,8 +620,11 @@
                     if (reg.test(value)) {
                         value = parseFloat(value);
                     }
-                    if (prop == 'shape') {
-                        if (['circle', 'ellipse', 'square', 'rectangle'].indexOf(value) != -1) {
+                    var allowedValues = {
+                        'shape': ['circle', 'ellipse', 'square', 'rectangle']
+                    }
+                    if (allowedValues[prop] != null) {
+                        if (allowedValues[prop].indexOf(value) != -1) {
                             vertex.attributes[prop] = value;
                             this.updateNodeAttributes();
                         }
@@ -569,9 +634,30 @@
                     }
                 }
             },
-            handleRightClickEdge: function(e) {
-                this.$.nodeDropdown.hideMenu();
-                this.$.edgeDropdown.showMenu(e.detail.e.x, e.detail.e.y);
+            handleEdgeEditProperty: function(e) {
+                var edge = this.$.networkViewer.lastContextEdge;
+                if (edge) {
+                    var prop = e.currentTarget.dataset.property;
+                    var value = e.currentTarget.value;
+                    var reg = new RegExp('^[0-9]+$');
+                    if (reg.test(value)) {
+                        value = parseFloat(value);
+                    }
+                    var allowedValues = {
+                        'shape': ['directed', 'undirected', 'inhibited', 'dot', 'odot'],
+                        'shaft': ['solid', 'dashed'],
+                        'bidirectional': ['true', 'false'],
+                    }
+                    if (allowedValues[prop] != null) {
+                        if (allowedValues[prop].indexOf(value) != -1) {
+                            edge.attributes[prop] = value;
+                            this.updateEdgeAttributes();
+                        }
+                    } else {
+                        edge.attributes[prop] = value;
+                        this.updateEdgeAttributes();
+                    }
+                }
             },
             handleSetAsGene: function(e) {
                 var vertex = this.$.networkViewer.lastContextVertex;
@@ -790,7 +876,7 @@
                         me.set('lastFileChecksum', me._createChecksum(res.sif, res.natt, res.eatt, res.nbg, res.nvs));
                     });
                 } else {
-                    if(file.type!='FOLDER'){
+                    if (file.type != 'FOLDER') {
                         me.clear();
                     }
                 }
